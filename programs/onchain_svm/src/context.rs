@@ -28,6 +28,7 @@ pub struct PredictionAccount {
     pub pool: Pubkey,               // Associated spark/pool
     pub prediction_value: u8,       // Predicted "Yes" percentage (0-100)
     //pub stake_amount: u64,          // Amount staked needed for spl tokens
+    pub prize: u64,                 // Prize amount
     pub is_claimed: bool,           // Whether rewards have been claimed
     pub bump: u8,                   // PDA bump
 }
@@ -77,11 +78,13 @@ pub struct CreatePool<'info> {
         payer = admin,
         space = 8 + std::mem::size_of::<PoolAccount>() + 20, // 8 bytes for the discriminator, fixed size for PoolAccount, and 20 bytes for the string (4 for length + 16 max)
         seeds = [b"pool", question.as_bytes()],
-        bump
+        bump,
+        constraint = pool.prediction_end_time > clock.unix_timestamp @ MyError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
     
     pub system_program: Program<'info, System>,
+    pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
@@ -145,6 +148,9 @@ pub enum AccountError {
     #[msg("Pool already finalized")]
     PoolAlreadyFinalized,
 
-    #[msg("Invalid pool")]
+    #[msg("Invalid pool passed")]
     InvalidPool,
+
+    #[msg("Invalid pool end time")]
+    InvalidEndTime,
 }
