@@ -1,12 +1,16 @@
 // Trepa Social Predictions Platform
 // Implementation based on Trepa Whitepaper v0.6.9
 // Built for Solana using Anchor framework
+
+pub mod context;
+pub use context::*;
+
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 // use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 // use std::collections::BTreeMap;
 
-pub mod helpers;
-pub mod context;
+//pub use context::*;
 
 declare_id!("E1YMZpRon87eymaLF6kE6GettQS93WFxP1oGaLmrti5q");
 
@@ -14,7 +18,7 @@ declare_id!("E1YMZpRon87eymaLF6kE6GettQS93WFxP1oGaLmrti5q");
 pub mod trepa {
     use super::*;
 
-    // ===== ADMIN FUNCTIONS =====
+    // ===== AUTHORITY FUNCTIONS =====
 
     /// Initializes the Trepa platform with configurable parameters
     pub fn initialize(
@@ -32,7 +36,7 @@ pub mod trepa {
         config.max_roi = max_roi;
         config.platform_fee = platform_fee;
         config.treasury = ctx.accounts.treasury.key();
-        config.bump = *ctx.bumps.get("config").unwrap();
+        config.bump = ctx.bumps.config;
 
         msg!("Trepa platform initialized");
         Ok(())
@@ -63,6 +67,7 @@ pub mod trepa {
     pub fn create_pool(
         ctx: Context<CreatePool>,
         question: String,
+        prediction_end_time: i64,
     ) -> Result<()> {
         // Check that the question string is no longer than 16 bytes
         if question.as_bytes().len() > 16 {
@@ -71,9 +76,10 @@ pub mod trepa {
 
         let pool = &mut ctx.accounts.pool;
         pool.question = question;
-        pool.prediction_end_time = ctx.accounts.prediction_end_time;
+        pool.prediction_end_time = prediction_end_time;
         pool.total_stake = 0;
         pool.is_finalized = false;
+        pool.bump = ctx.bumps.pool;
         Ok(())
     }
 
@@ -81,7 +87,7 @@ pub mod trepa {
     // TODO: add handler for adding stake  
     pub fn predict(
         ctx: Context<Predict>,
-        prediction: u64,
+        pred: u8,
         stake: u64,  // the intended stake amount
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
@@ -89,10 +95,10 @@ pub mod trepa {
 
         let prediction = &mut ctx.accounts.prediction;
         prediction.pool = pool.key();
-        prediction.prediction_value = prediction;
-        prediction.stake = stake;
+        prediction.prediction_value = pred;
         prediction.prize = 0;
         prediction.is_claimed = false;
+        prediction.bump = ctx.bumps.prediction;
 
         // Transfer SOL from the predictor to the pool accoun
         let cpi_ctx = CpiContext::new(
@@ -107,9 +113,9 @@ pub mod trepa {
     }     
 
     /// Finalizes a pool
-    // TODO: add handler for distributing rewards
     pub fn finalize_pool(
         ctx: Context<FinalizePool>,
+        prize_amounts: Vec<u64>,
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
 
@@ -129,21 +135,23 @@ pub mod trepa {
 
         require!(
             remaining_accounts.len() == prize_amounts.len(),
-            AccountError::MismatchedPrizeCount
+            CustomError::MismatchedPrizeCount
         );
 
         // Process each prediction account dynamically
-        for (i, account_info) in remaining_accounts.iter().enumerate() {
-            let mut prediction_account: Account<PredictionAccount> =
-                Account::try_from(account_info)?;
+        for (index, account_info) in remaining_accounts.iter().cloned().enumerate() {
+            let mut prediction_acc: PredictionAccount = PredictionAccount::try_deserialize(
+                &mut &account_info.data.borrow()[..]
+            )?;
             
             require!(
-                prediction_account.pool == pool.key(),
-                AccountError::InvalidPool
+                prediction_acc.pool == pool.key(),
+                CustomError::InvalidPool
             );
 
-            prediction_account.prize = prize_amounts[i];
+            prediction_acc.prize = prize_amounts[index];
             //msg!("Updated prize for prediction: {}", prediction_account.prize);
+            prediction_acc.try_serialize(&mut &mut account_info.data.borrow_mut()[..])?;
         }
 
         msg!("Finalized pool: {}", pool.key());
