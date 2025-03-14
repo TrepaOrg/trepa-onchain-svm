@@ -49,7 +49,8 @@ pub struct Initialize<'info> {
     )]
     pub config: Account<'info, ConfigAccount>,
     
-    pub treasury: Account<'info, TokenAccount>,
+    /// CHECK: The treasury is a plain wallet account, and no additional checks are necessary.
+    pub treasury: UncheckedAccount<'info>,
     
     pub system_program: Program<'info, System>,
 }
@@ -63,12 +64,13 @@ pub struct UpdateParameters<'info> {
         mut,
         seeds = [b"config"],
         bump = config.bump,
-        constraint = config.authority == authority.key() @ AccountError::Unauthorized
+        constraint = config.authority == authority.key() @ ContextError::Unauthorized
     )]
     pub config: Account<'info, ConfigAccount>,
 }
 
 #[derive(Accounts)]
+#[instruction(question: String)]
 pub struct CreatePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -79,7 +81,7 @@ pub struct CreatePool<'info> {
         space = 8 + std::mem::size_of::<PoolAccount>() + 20, // 8 bytes for the discriminator, fixed size for PoolAccount, and 20 bytes for the string (4 for length + 16 max)
         seeds = [b"pool", question.as_bytes()],
         bump,
-        constraint = pool.prediction_end_time > clock.unix_timestamp @ MyError::InvalidEndTime
+        constraint = pool.prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
     
@@ -94,7 +96,7 @@ pub struct Predict<'info> {
     
     #[account(
         mut,
-        constraint = !pool.is_finalized @ AccountError::PoolAlreadyFinalized
+        constraint = !pool.is_finalized @ ContextError::PoolAlreadyFinalized
     )]
     pub pool: Account<'info, PoolAccount>,
     
@@ -121,7 +123,7 @@ pub struct FinalizePool<'info> {
     
     #[account(
         mut,
-        constraint = !pool.is_finalized @ AccountError::PoolAlreadyFinalized
+        constraint = !pool.is_finalized @ ContextError::PoolAlreadyFinalized
     )]
     pub pool: Account<'info, PoolAccount>,
 }   
@@ -133,7 +135,7 @@ pub struct ClaimRewards<'info> {
     
     #[account(
         mut,
-        constraint = prediction.pool == pool.key() @ AccountError::InvalidPool
+        constraint = prediction.pool == pool.key() @ ContextError::InvalidPool
     )]
     pub prediction: Account<'info, PredictionAccount>,
 
@@ -141,7 +143,7 @@ pub struct ClaimRewards<'info> {
 }
 
 #[error_code]
-pub enum AccountError {
+pub enum ContextError {
     #[msg("Unauthorized update")]
     Unauthorized,
 
