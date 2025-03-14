@@ -24,7 +24,7 @@ pub struct PoolAccount {
 
 #[account]
 pub struct PredictionAccount {
-    pub predictor: Pubkey,          // Predictor's public key
+    //pub predictor: Pubkey,          // Predictor's public key
     pub pool: Pubkey,               // Associated spark/pool
     pub prediction_value: u8,       // Predicted "Yes" percentage (0-100)
     //pub stake_amount: u64,          // Amount staked needed for spl tokens
@@ -70,11 +70,11 @@ pub struct UpdateParameters<'info> {
 #[derive(Accounts)]
 pub struct CreatePool<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
 
     #[account(
         init,
-        payer = authority,
+        payer = admin,
         space = 8 + std::mem::size_of::<PoolAccount>() + 20, // 8 bytes for the discriminator, fixed size for PoolAccount, and 20 bytes for the string (4 for length + 16 max)
         seeds = [b"pool", question.as_bytes()],
         bump
@@ -90,12 +90,6 @@ pub struct Predict<'info> {
     pub predictor: Signer<'info>,
     
     #[account(
-        seeds = [b"config"],
-        bump = config.bump
-    )]
-    pub config: Account<'info, ConfigAccount>,
-    
-    #[account(
         mut,
         constraint = !pool.is_finalized @ AccountError::PoolAlreadyFinalized
     )]
@@ -105,22 +99,42 @@ pub struct Predict<'info> {
         init,
         payer = predictor,
         space = 8 + std::mem::size_of::<PredictionAccount>(),
-        seeds = [b"prediction", spark.key().as_ref(), predictor.key().as_ref()],
+        seeds = [b"prediction", pool.key().as_ref(), predictor.key().as_ref()],
         bump
     )]
     pub prediction: Account<'info, PredictionAccount>,
     
+    // for spl tokens
+    // #[account(mut)]
+    // pub predictor_token_account: Account<'info, TokenAccount>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct FinalizePool<'info> {
     #[account(mut)]
-    pub predictor_token_account: Account<'info, TokenAccount>,
+    pub admin: Signer<'info>,
     
     #[account(
         mut,
-        constraint = prediction_vault.owner == config.key() @ AccountError::InvalidVault
+        constraint = !pool.is_finalized @ AccountError::PoolAlreadyFinalized
     )]
-    pub prediction_vault: Account<'info, TokenAccount>,
+    pub pool: Account<'info, PoolAccount>,
+}   
+
+#[derive(Accounts)]
+pub struct ClaimRewards<'info> {
+    #[account(mut)]
+    pub predictor: Signer<'info>,
     
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
+    #[account(
+        mut,
+        constraint = prediction.pool == pool.key() @ AccountError::InvalidPool
+    )]
+    pub prediction: Account<'info, PredictionAccount>,
+
+    pub pool: Account<'info, PoolAccount>,
 }
 
 #[error_code]
@@ -131,6 +145,6 @@ pub enum AccountError {
     #[msg("Pool already finalized")]
     PoolAlreadyFinalized,
 
-    #[msg("Invalid vault")]
-    InvalidVault,
+    #[msg("Invalid pool")]
+    InvalidPool,
 }
