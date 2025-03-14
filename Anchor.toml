@@ -4,8 +4,8 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-onchain_svm = "E1YMZpRon87eymaLF6kE6GettQS93WFxP1oGaLmrti5q"
+[programs."https://api.testnet.sonic.game/"]
+trepa = "FoJrCqMUvKkMcb15Xa3wEFaUEXjN9Yp9aDhPhUXdSZLs"
 
 [registry]
 url = "https://api.testnet.sonic.game/"
