@@ -14,8 +14,12 @@ no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 default = []
-anchor-debug = ["debug-assertions"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
 
 [dependencies]
 anchor-lang = "0.29.0"
 anchor-spl = "0.29.0"
+
+

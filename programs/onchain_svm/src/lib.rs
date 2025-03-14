@@ -1,6 +1,7 @@
 // Trepa Social Predictions Platform
 // Implementation based on Trepa Whitepaper v0.6.9
 // Built for Solana using Anchor framework
+#![allow(unexpected_cfgs)]
 
 pub mod context;
 pub use context::*;
