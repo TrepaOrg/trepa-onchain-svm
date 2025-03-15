@@ -6,7 +6,8 @@ import { Trepa } from "../../target/types/trepa";
 /**
  * Creates a new pool with the given question and prediction end time.
  * @param program - The program instance.
- * @param question - The question to be asked.
+ * @param wallet - The wallet instance.
+ * @param questionId - The question to be asked.
  * @param predictionEndTime - The timestamp when the prediction ends.
  */
 export async function createPool(
