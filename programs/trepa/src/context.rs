@@ -15,7 +15,7 @@ pub struct ConfigAccount {
 
 #[account]
 pub struct PoolAccount {
-    pub question: String,           // The prediction question (identifier) always 16 bytes
+    pub question: [u8; 16],           // The prediction question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends
     pub total_stake: u64,           // Total tokens staked
     pub is_finalized: bool,         // Whether the spark has been finalized
@@ -70,7 +70,7 @@ pub struct UpdateParameters<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(question: String)]
+#[instruction(question: [u8; 16])]
 pub struct CreatePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -78,8 +78,8 @@ pub struct CreatePool<'info> {
     #[account(
         init,
         payer = admin,
-        space = 8 + std::mem::size_of::<PoolAccount>() + 20, // 8 bytes for the discriminator, fixed size for PoolAccount, and 20 bytes for the string (4 for length + 16 max)
-        seeds = [b"pool", question.as_bytes()],
+        space = 8 + std::mem::size_of::<PoolAccount>() + 20,  // 8 for the discriminator; fixed size for PoolAccount; 20 bytes for the string (4 for length + 16 max)
+        seeds = [b"pool", &question[..]],
         bump,
         constraint = pool.prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
     )]

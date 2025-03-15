@@ -67,13 +67,9 @@ pub mod trepa {
     /// Creates a new prediction pool
     pub fn create_pool(
         ctx: Context<CreatePool>,
-        question: String,
+        question: [u8; 16],
         prediction_end_time: i64,
     ) -> Result<()> {
-        // Check that the question string is no longer than 16 bytes
-        if question.as_bytes().len() > 16 {
-            return Err(CustomError::QuestionTooLong.into());
-        }
 
         let pool = &mut ctx.accounts.pool;
         pool.question = question;
