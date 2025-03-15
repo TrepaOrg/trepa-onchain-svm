@@ -1,6 +1,5 @@
 import { BN, Program } from "@project-serum/anchor";
 import { PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Transaction } from "@solana/web3.js";
-import { ConnectedSolanaWallet } from '@privy-io/react-auth';
 import { Trepa } from "../../target/types/trepa";
 
 /**
@@ -12,7 +11,7 @@ import { Trepa } from "../../target/types/trepa";
  */
 export async function createPool(
     program: Program<Trepa>, 
-    wallet: ConnectedSolanaWallet, 
+    wallet: PublicKey, 
     questionId: string, 
     predictionEndTime: number
 ): Promise<Transaction> {
@@ -30,12 +29,13 @@ export async function createPool(
         program.programId
     );
 
+    console.log("Pool PDA:", poolPDA.toBase58());
     // Create the pool
     const tx = await program.methods
         .createPool(questionArray, new BN(predictionEndTime))
         .accounts({
             pool: poolPDA,
-            admin: wallet.address,
+            admin: wallet,
             systemProgram: SystemProgram.programId,
             clock: SYSVAR_CLOCK_PUBKEY,
         })

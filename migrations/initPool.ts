@@ -22,7 +22,7 @@ async function main() {
   // Prepare transaction to initialize the Config account
   const tx = await createPool(
     program, 
-    provider.wallet as unknown as ConnectedSolanaWallet, 
+    provider.wallet.publicKey, 
     question, 
     predictionEndTime
   );
