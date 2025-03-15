@@ -16,7 +16,7 @@ async function main() {
   console.log(`📜 Program loaded with ID: ${program.programId.toBase58()}`);
 
 
-  const question = "b9cdc74e-c59a-4dbc-8006-c3e32604081a"; // 16 bytes uuid
+  const question = "b9cdc74e-c59a-4dbc-8006-c3e326040812"; // 16 bytes uuid
   // Calculate prediction end time one year later (in seconds)
   const predictionEndTime = Math.floor(Date.now() / 1000) + 31536000;
   // Prepare transaction to initialize the Config account
@@ -26,6 +26,8 @@ async function main() {
     question, 
     predictionEndTime
   );
+  
+  console.log("Pool PDA:", tx.instructions[0].keys[1].pubkey.toBase58());
 
   const signature = await provider.sendAndConfirm(tx);
   console.log("Transaction Signature:", signature);
