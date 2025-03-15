@@ -13,7 +13,7 @@ use anchor_lang::system_program;
 
 //pub use context::*;
 
-declare_id!("FoJrCqMUvKkMcb15Xa3wEFaUEXjN9Yp9aDhPhUXdSZLs");
+declare_id!("4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU");
 
 #[program]
 pub mod trepa {

@@ -5,7 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs."https://api.testnet.sonic.game/"]
-trepa = "FoJrCqMUvKkMcb15Xa3wEFaUEXjN9Yp9aDhPhUXdSZLs"
+trepa = "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
 
 [registry]
 url = "https://api.testnet.sonic.game/"
