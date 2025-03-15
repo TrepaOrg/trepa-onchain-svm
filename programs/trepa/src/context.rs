@@ -70,7 +70,7 @@ pub struct UpdateParameters<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(question: [u8; 16])]
+#[instruction(question: [u8; 16], prediction_end_time: i64)]
 pub struct CreatePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -81,7 +81,7 @@ pub struct CreatePool<'info> {
         space = 8 + std::mem::size_of::<PoolAccount>() + 20,  // 8 for the discriminator; fixed size for PoolAccount; 20 bytes for the string (4 for length + 16 max)
         seeds = [b"pool", &question[..]],
         bump,
-        constraint = pool.prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
+        constraint = prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
     

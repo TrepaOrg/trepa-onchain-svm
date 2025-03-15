@@ -77,6 +77,8 @@ pub mod trepa {
         pool.total_stake = 0;
         pool.is_finalized = false;
         pool.bump = ctx.bumps.pool;
+
+        msg!("Pool created: {}", pool.key());
         Ok(())
     }
 
