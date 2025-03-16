@@ -118,11 +118,12 @@ pub mod trepa {
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
 
-        // Check if the pool is not ended
-        let current_timestamp = Clock::get()?.unix_timestamp;
-        if current_timestamp < pool.prediction_end_time {
-            return Err(CustomError::PredictionNotEnded.into());
-        }
+        // Check if the pool is not ended 
+        // TODO: enable this
+        // let current_timestamp = Clock::get()?.unix_timestamp;
+        // if current_timestamp < pool.prediction_end_time {
+        //     return Err(CustomError::PredictionNotEnded.into());
+        // }
 
         // Check if the pool is already finalized
         if pool.is_finalized {
