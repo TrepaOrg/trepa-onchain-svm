@@ -19,7 +19,7 @@ export async function getPredictionValueFromTx(signature: string, connection: Co
     }
 
     console.log("Transaction Data:");
-    console.log(JSON.stringify(transactionData, null, 2));
+    //console.log(JSON.stringify(transactionData, null, 2));
 
     // Ensure inner instructions exist.
     if (!transactionData.meta.innerInstructions || transactionData.meta.innerInstructions.length === 0) {

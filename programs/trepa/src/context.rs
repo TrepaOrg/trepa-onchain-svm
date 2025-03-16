@@ -140,6 +140,8 @@ pub struct ClaimRewards<'info> {
     pub prediction: Account<'info, PredictionAccount>,
 
     pub pool: Account<'info, PoolAccount>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[error_code]

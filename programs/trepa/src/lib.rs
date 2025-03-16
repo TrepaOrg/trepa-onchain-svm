@@ -108,6 +108,8 @@ pub mod trepa {
             },
         );
         system_program::transfer(cpi_ctx, stake)?;
+
+        msg!("Prediction made: {} with stake {}", prediction.key(), stake);
         Ok(())
     }     
 
@@ -153,11 +155,35 @@ pub mod trepa {
             prediction_acc.try_serialize(&mut &mut account_info.data.borrow_mut()[..])?;
         }
 
-        msg!("Resolved pool: {}", pool.key());
+        msg!("Pool {} resolved", pool.key());
 
         pool.is_finalized = true;
         Ok(())
-    }           
+    }     
+
+    pub fn claim_rewards(
+        ctx: Context<ClaimRewards>,
+    ) -> Result<()> {
+        let prediction = &mut ctx.accounts.prediction;
+        if prediction.is_claimed {
+            return Err(CustomError::PredictionAlreadyClaimed.into());
+        }
+        let prize = prediction.prize;
+        prediction.prize = 0;
+        prediction.is_claimed = true;
+
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            system_program::Transfer {
+                from: ctx.accounts.pool.to_account_info(),
+                to: ctx.accounts.predictor.to_account_info(),
+            },
+        );
+        system_program::transfer(cpi_ctx, prize)?;
+
+        msg!("Reward claimed: {} for prediction {}", prediction.prize, prediction.key());
+        Ok(())
+    }      
 }     
 
 #[error_code]
@@ -179,4 +205,7 @@ pub enum CustomError {
 
     #[msg("Mismatched prize count")]
     MismatchedPrizeCount,   
+
+    #[msg("Prediction already claimed")]
+    PredictionAlreadyClaimed,
 }
