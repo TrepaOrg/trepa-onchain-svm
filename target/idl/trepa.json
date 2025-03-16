@@ -206,7 +206,7 @@
         },
         {
           "name": "pool",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -340,9 +340,6 @@
           },
           {
             "name": "MismatchedPrizeCount"
-          },
-          {
-            "name": "PredictionAlreadyClaimed"
           }
         ]
       }
@@ -368,6 +365,11 @@
       "code": 6003,
       "name": "InvalidEndTime",
       "msg": "Invalid pool end time"
+    },
+    {
+      "code": 6004,
+      "name": "RewardsAlreadyClaimed",
+      "msg": "Rewards already claimed"
     }
   ],
   "metadata": {

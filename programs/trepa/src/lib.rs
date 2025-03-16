@@ -165,23 +165,33 @@ pub mod trepa {
         ctx: Context<ClaimRewards>,
     ) -> Result<()> {
         let prediction = &mut ctx.accounts.prediction;
-        if prediction.is_claimed {
-            return Err(CustomError::PredictionAlreadyClaimed.into());
-        }
+        // let pool = &mut ctx.accounts.pool;
+        // let predictor = &ctx.accounts.predictor;
+        // let system_program = &ctx.accounts.system_program;
+        
         let prize = prediction.prize;
         prediction.prize = 0;
         prediction.is_claimed = true;
+        
+        // // Store the temporary array in a variable to extend its lifetime.
+        // let bump_seed: &[u8] = &[pool.bump];
+        // let pool_seeds: &[&[u8]] = &[b"pool", &pool.question, bump_seed];
+        // let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
+        
+        // let cpi_context = CpiContext::new_with_signer(
+        //     system_program.to_account_info(),
+        //     system_program::Transfer {
+        //         from: pool.to_account_info(),
+        //         to: predictor.to_account_info(),
+        //     },
+        //     signer_seeds,
+        // );
+        
+        // system_program::transfer(cpi_context, prize)?;
+        ctx.accounts.pool.sub_lamports(prize)?;
+        ctx.accounts.predictor.add_lamports(prize)?;
 
-        let cpi_ctx = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.pool.to_account_info(),
-                to: ctx.accounts.predictor.to_account_info(),
-            },
-        );
-        system_program::transfer(cpi_ctx, prize)?;
-
-        msg!("Reward claimed: {} for prediction {}", prediction.prize, prediction.key());
+        msg!("Reward claimed: {} for prediction {}", prize, prediction.key());
         Ok(())
     }      
 }     
@@ -205,7 +215,4 @@ pub enum CustomError {
 
     #[msg("Mismatched prize count")]
     MismatchedPrizeCount,   
-
-    #[msg("Prediction already claimed")]
-    PredictionAlreadyClaimed,
 }

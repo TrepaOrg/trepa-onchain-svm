@@ -135,10 +135,15 @@ pub struct ClaimRewards<'info> {
     
     #[account(
         mut,
-        constraint = prediction.pool == pool.key() @ ContextError::InvalidPool
+        constraint = prediction.pool == pool.key() @ ContextError::InvalidPool,
+        constraint = prediction.is_claimed == false @ ContextError::RewardsAlreadyClaimed
     )]
     pub prediction: Account<'info, PredictionAccount>,
 
+    #[account(
+        mut,
+        constraint = pool.key() == prediction.pool @ ContextError::InvalidPool
+    )]
     pub pool: Account<'info, PoolAccount>,
 
     pub system_program: Program<'info, System>,
@@ -157,4 +162,7 @@ pub enum ContextError {
 
     #[msg("Invalid pool end time")]
     InvalidEndTime,
+
+    #[msg("Rewards already claimed")]
+    RewardsAlreadyClaimed,
 }

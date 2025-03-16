@@ -13,7 +13,7 @@ import { Trepa } from "../../target/types/trepa";
 export async function createPrediction(
     program: Program<Trepa>, 
     wallet: PublicKey, 
-    poolId: string, 
+    poolId: string, // 16 bytes uuid
     prediction: number,
     stake: number
 ): Promise<Transaction> {

@@ -206,7 +206,7 @@ export type Trepa = {
         },
         {
           "name": "pool",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -340,9 +340,6 @@ export type Trepa = {
           },
           {
             "name": "MismatchedPrizeCount"
-          },
-          {
-            "name": "PredictionAlreadyClaimed"
           }
         ]
       }
@@ -368,6 +365,11 @@ export type Trepa = {
       "code": 6003,
       "name": "InvalidEndTime",
       "msg": "Invalid pool end time"
+    },
+    {
+      "code": 6004,
+      "name": "RewardsAlreadyClaimed",
+      "msg": "Rewards already claimed"
     }
   ]
 };
@@ -580,7 +582,7 @@ export const IDL: Trepa = {
         },
         {
           "name": "pool",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -714,9 +716,6 @@ export const IDL: Trepa = {
           },
           {
             "name": "MismatchedPrizeCount"
-          },
-          {
-            "name": "PredictionAlreadyClaimed"
           }
         ]
       }
@@ -742,6 +741,11 @@ export const IDL: Trepa = {
       "code": 6003,
       "name": "InvalidEndTime",
       "msg": "Invalid pool end time"
+    },
+    {
+      "code": 6004,
+      "name": "RewardsAlreadyClaimed",
+      "msg": "Rewards already claimed"
     }
   ]
 };
