@@ -31,7 +31,7 @@ export async function resolvePool(
     // Get the PDA for the predictions
     const predictionPDA = predictors.map(predictor => {
         const [predictionPDA] = PublicKey.findProgramAddressSync(
-            [Buffer.from("prediction"), poolBytes, predictor.toBuffer()],
+            [Buffer.from("prediction"), poolPDA.toBuffer(), predictor.toBuffer()],
             program.programId
         );
         return {

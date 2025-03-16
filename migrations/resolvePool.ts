@@ -15,12 +15,12 @@ async function main() {
   console.log(`📜 Program loaded with ID: ${program.programId.toBase58()}`);
 
 
-  const question = "b9cdc74e-c59a-4dbc-8006-c3e326040813"; // 16 bytes uuid
+  const poolId = "b9cdc74e-c59a-4dbc-8006-c3e326040815"; // 16 bytes uuid
   // Calculate prediction end time one year later (in seconds)
   // Prepare transaction to initialize the Config account
   const tx = await resolvePool(
     program, 
-    question, 
+    poolId, 
     provider.wallet.publicKey, 
     [1000000],
     [provider.wallet.publicKey]

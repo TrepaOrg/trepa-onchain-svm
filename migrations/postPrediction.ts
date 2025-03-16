@@ -15,7 +15,7 @@ async function main() {
   console.log(`📜 Program loaded with ID: ${program.programId.toBase58()}`);
 
 
-  const poolId = "4JsLhdJznZegbS8DSxTG6CZNzDQSJrzKWc6aS6WUU6hp";
+  const poolId = "b9cdc74e-c59a-4dbc-8006-c3e326040815"; // 16 bytes uuid
   
   // Prepare transaction to initialize the Config account
   const tx = await createPrediction(

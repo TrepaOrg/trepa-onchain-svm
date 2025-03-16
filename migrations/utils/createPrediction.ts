@@ -6,7 +6,7 @@ import { Trepa } from "../../target/types/trepa";
  * Creates a new prediction.
  * @param program - The program instance.
  * @param wallet - The wallet instance.
- * @param poolId - The pool to be predicted.
+ * @param poolId - The pool to be predicted. (16 bytes uuid)
  * @param prediction - The prediction to be made.
  * @param stake - The stake to be made.
  */
@@ -17,23 +17,32 @@ export async function createPrediction(
     prediction: number,
     stake: number
 ): Promise<Transaction> {
-    const poolAddress = new PublicKey(poolId);
+
     console.log("Program ID:", program.programId.toBase58());
-    console.log("Pool Address:", poolAddress.toBase58());
+
+    // Get the PDA for the pool
+    const cleanedPoolId = poolId.replace(/-/g, '');
+    const poolBytes = Buffer.from(cleanedPoolId, 'hex');
+    const [poolPDA] = await PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), poolBytes],
+        program.programId
+    );
+    console.log("Pool PDA:", poolPDA.toBase58());
 
     // Get the PDA for the prediction       
     const [predictionPDA] = await PublicKey.findProgramAddressSync(
-        [Buffer.from("prediction"), poolAddress.toBuffer(), wallet.toBuffer()],
+        [Buffer.from("prediction"), poolPDA.toBuffer(), wallet.toBuffer()],
         program.programId
     );
+    console.log("Prediction PDA:", predictionPDA.toBase58());
+
     // Create the prediction
     const tx = await program.methods
         .predict(prediction, new BN(stake))
         .accounts({
             prediction: predictionPDA,
-            pool: poolAddress,
+            pool: poolPDA,
             predictor: wallet,
-
             systemProgram: SystemProgram.programId,
         })
         .transaction();
