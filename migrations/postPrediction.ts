@@ -1,7 +1,6 @@
 import * as anchor from "@project-serum/anchor";
 import { Trepa } from "../target/types/trepa";
 import { createPrediction } from "./utils/createPrediction";
-import { ConnectedSolanaWallet } from "@privy-io/react-auth";
 
 async function main() {
   // Set up the provider and program
@@ -16,7 +15,7 @@ async function main() {
   console.log(`📜 Program loaded with ID: ${program.programId.toBase58()}`);
 
 
-  const poolId = "ncky9dcofJYpziBxcCVpC1QmJ5QCZZJokLFPTTpyTVo";
+  const poolId = "4JsLhdJznZegbS8DSxTG6CZNzDQSJrzKWc6aS6WUU6hp";
   
   // Prepare transaction to initialize the Config account
   const tx = await createPrediction(
