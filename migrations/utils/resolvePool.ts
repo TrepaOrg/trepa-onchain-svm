@@ -1,5 +1,5 @@
 import { BN, Program } from "@project-serum/anchor";
-import { PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Transaction } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
 
 /**
@@ -41,7 +41,7 @@ export async function resolvePool(
         }
     });
 
-    const prizeAmounts = prizes.map(prize => new BN(prize)); // 0.001 SOL
+    const prizeAmounts = prizes.map(prize => new BN(prize * LAMPORTS_PER_SOL)); // 0.001 SOL
 
     if (prizeAmounts.length !== predictionPDA.length) {
         throw new Error("Mismatched prize count");

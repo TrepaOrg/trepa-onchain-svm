@@ -15,7 +15,7 @@ export async function claimReward(
     wallet: PublicKey, 
     poolId: string, 
 ): Promise<Transaction> {
-
+    
     console.log("Program ID:", program.programId.toBase58());
 
     // Get the PDA for the pool
