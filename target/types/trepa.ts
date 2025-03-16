@@ -166,7 +166,7 @@ export type Trepa = {
       ]
     },
     {
-      "name": "finalizePool",
+      "name": "resolvePool",
       "docs": [
         "Finalizes a pool"
       ],
@@ -511,7 +511,7 @@ export const IDL: Trepa = {
       ]
     },
     {
-      "name": "finalizePool",
+      "name": "resolvePool",
       "docs": [
         "Finalizes a pool"
       ],

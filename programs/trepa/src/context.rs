@@ -117,7 +117,7 @@ pub struct Predict<'info> {
 }
 
 #[derive(Accounts)]
-pub struct FinalizePool<'info> {
+pub struct ResolvePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     

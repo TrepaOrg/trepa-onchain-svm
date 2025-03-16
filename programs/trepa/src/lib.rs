@@ -112,12 +112,13 @@ pub mod trepa {
     }     
 
     /// Finalizes a pool
-    pub fn finalize_pool(
-        ctx: Context<FinalizePool>,
+    pub fn resolve_pool(
+        ctx: Context<ResolvePool>,
         prize_amounts: Vec<u64>,
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
 
+        // Check if the pool is not ended
         let current_timestamp = Clock::get()?.unix_timestamp;
         if current_timestamp < pool.prediction_end_time {
             return Err(CustomError::PredictionNotEnded.into());
@@ -128,10 +129,8 @@ pub mod trepa {
             return Err(CustomError::PoolAlreadyFinalized.into());
         }
 
-        // Working with winner accounts 
         // Get the dynamically passed accounts
         let remaining_accounts = &ctx.remaining_accounts;
-
         require!(
             remaining_accounts.len() == prize_amounts.len(),
             CustomError::MismatchedPrizeCount
@@ -153,7 +152,7 @@ pub mod trepa {
             prediction_acc.try_serialize(&mut &mut account_info.data.borrow_mut()[..])?;
         }
 
-        msg!("Finalized pool: {}", pool.key());
+        msg!("Resolved pool: {}", pool.key());
 
         pool.is_finalized = true;
         Ok(())

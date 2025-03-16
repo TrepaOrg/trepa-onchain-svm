@@ -166,7 +166,7 @@
       ]
     },
     {
-      "name": "finalizePool",
+      "name": "resolvePool",
       "docs": [
         "Finalizes a pool"
       ],
