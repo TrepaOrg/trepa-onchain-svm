@@ -23,7 +23,7 @@ async function main() {
     provider.wallet.publicKey, 
     poolId, 
     10,
-    10000000 // 0.01 SOL
+    0.01 // 0.01 SOL
   );
 
   const signature = await provider.sendAndConfirm(tx);

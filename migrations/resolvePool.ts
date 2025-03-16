@@ -22,7 +22,7 @@ async function main() {
     program, 
     poolId, 
     provider.wallet.publicKey, 
-    [1000000],
+    [0.001],
     [provider.wallet.publicKey]
   );
 
