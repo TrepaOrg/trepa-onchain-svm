@@ -190,6 +190,32 @@ export type Trepa = {
           }
         }
       ]
+    },
+    {
+      "name": "claimRewards",
+      "accounts": [
+        {
+          "name": "predictor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "prediction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -314,6 +340,9 @@ export type Trepa = {
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "PredictionAlreadyClaimed"
           }
         ]
       }
@@ -535,6 +564,32 @@ export const IDL: Trepa = {
           }
         }
       ]
+    },
+    {
+      "name": "claimRewards",
+      "accounts": [
+        {
+          "name": "predictor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "prediction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -659,6 +714,9 @@ export const IDL: Trepa = {
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "PredictionAlreadyClaimed"
           }
         ]
       }

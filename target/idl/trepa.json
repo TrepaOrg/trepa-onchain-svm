@@ -190,6 +190,32 @@
           }
         }
       ]
+    },
+    {
+      "name": "claimRewards",
+      "accounts": [
+        {
+          "name": "predictor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "prediction",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "pool",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -314,6 +340,9 @@
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "PredictionAlreadyClaimed"
           }
         ]
       }
