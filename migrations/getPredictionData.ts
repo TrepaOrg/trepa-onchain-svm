@@ -9,7 +9,7 @@ async function main() {
     const connection = provider.connection;
     const program = anchor.workspace.Trepa as anchor.Program<Trepa>;
 
-    const signature = "4kAhCQqEJdxNBr9K9gmZdYArPzw6eXywQ7EPxQ4GM9zgMDBYC2Us6UN9dVeNbDcjqHX1vceKWMZZKZSUaa9MvNpm";
+    const signature = "35W4iJma9R2Xa72tN89D6YxXRVkdSGvmCWQQjjrqWDmWvMvz7QVdNhdsTiQKmDfLZKWbTAtPREK9pq1RDfER5z2C";
     const predictionValue = await getPredictionValueFromTx(signature, connection);
     console.log("Prediction value from tx:", predictionValue);
 

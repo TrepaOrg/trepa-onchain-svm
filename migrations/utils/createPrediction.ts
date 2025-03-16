@@ -7,8 +7,8 @@ import { Trepa } from "../../target/types/trepa";
  * @param program - The program instance.
  * @param wallet - The wallet instance.
  * @param poolId - The pool to be predicted. (16 bytes uuid)
- * @param prediction - The prediction to be made.
- * @param stake - The stake to be made.
+ * @param prediction - The prediction to be made. [0, 100]
+ * @param stake - The stake to be made with the prediction. 
  */
 export async function createPrediction(
     program: Program<Trepa>, 
