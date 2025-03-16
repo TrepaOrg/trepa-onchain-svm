@@ -1,4 +1,4 @@
-import { getPredictionValue } from "./utils/getPredictionValue";
+import { getPredictionValueFromTx } from "./utils/getPredictionValue";
 import * as anchor from "@project-serum/anchor";
 
 async function main() {
@@ -7,7 +7,7 @@ async function main() {
     const connection = provider.connection;
 
     const signature = "4kAhCQqEJdxNBr9K9gmZdYArPzw6eXywQ7EPxQ4GM9zgMDBYC2Us6UN9dVeNbDcjqHX1vceKWMZZKZSUaa9MvNpm";
-    const predictionValue = await getPredictionValue(signature, connection);
+    const predictionValue = await getPredictionValueFromTx(signature, connection);
     console.log("Prediction value:", predictionValue);
   }
   

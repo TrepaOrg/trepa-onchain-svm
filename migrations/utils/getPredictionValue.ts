@@ -6,7 +6,7 @@ import { Connection } from "@solana/web3.js";
  * @param connection - The connection to the Solana network.
  * @returns The transaction details.
  */
-export async function getPredictionValue(signature: string, connection: Connection): Promise<bigint> {
+export async function getPredictionValueFromTx(signature: string, connection: Connection): Promise<bigint> {
 
     const transactionData = await connection.getParsedTransaction(signature, {
         commitment: "confirmed",
