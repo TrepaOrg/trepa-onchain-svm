@@ -56,7 +56,7 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdateParameters<'info> {
+pub struct UpdateConfig<'info> {
     #[account(mut)]
         pub admin: Signer<'info>,
     

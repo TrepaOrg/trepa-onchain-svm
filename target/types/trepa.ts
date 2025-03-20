@@ -49,7 +49,7 @@ export type Trepa = {
       ]
     },
     {
-      "name": "updateParameters",
+      "name": "updateConfig",
       "docs": [
         "Updates the platform parameters"
       ],
@@ -425,7 +425,7 @@ export const IDL: Trepa = {
       ]
     },
     {
-      "name": "updateParameters",
+      "name": "updateConfig",
       "docs": [
         "Updates the platform parameters"
       ],

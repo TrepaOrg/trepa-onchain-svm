@@ -40,8 +40,8 @@ pub mod trepa {
     }
 
     /// Updates the platform parameters
-    pub fn update_parameters(
-        ctx: Context<UpdateParameters>,
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
         min_stake: u64,
         max_stake: u64,
         max_roi: u64,

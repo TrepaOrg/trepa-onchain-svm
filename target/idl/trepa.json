@@ -49,7 +49,7 @@
       ]
     },
     {
-      "name": "updateParameters",
+      "name": "updateConfig",
       "docs": [
         "Updates the platform parameters"
       ],
