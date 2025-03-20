@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct ConfigAccount {
-    pub authority: Pubkey,        // Admin authority
+    pub admin: Pubkey,        // Admin authority
     pub min_stake: u64,           // Minimum stake amount
     pub max_stake: u64,           // Maximum stake amount
     pub max_roi: u64,             // Maximum ROI in basis points (e.g., 10000 = 100%)
@@ -38,11 +38,11 @@ pub struct PredictionAccount {
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
     
     #[account(
         init,
-        payer = authority,
+        payer = admin,
         space = 8 + std::mem::size_of::<ConfigAccount>(),
         seeds = [b"config"],
         bump
@@ -58,13 +58,13 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 pub struct UpdateParameters<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
+        pub admin: Signer<'info>,
     
     #[account(
         mut,
         seeds = [b"config"],
         bump = config.bump,
-        constraint = config.authority == authority.key() @ ContextError::Unauthorized
+        constraint = config.admin == admin.key() @ ContextError::Unauthorized
     )]
     pub config: Account<'info, ConfigAccount>,
 }

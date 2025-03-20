@@ -8,12 +8,8 @@ pub use context::*;
 
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
-// use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-// use std::collections::BTreeMap;
 
-//pub use context::*;
-
-declare_id!("4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU");
+declare_id!("55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e");
 
 #[program]
 pub mod trepa {
@@ -31,7 +27,7 @@ pub mod trepa {
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
 
-        config.authority = ctx.accounts.authority.key();
+        config.admin = ctx.accounts.admin.key();
         config.min_stake = min_stake;
         config.max_stake = max_stake;
         config.max_roi = max_roi;

@@ -36,7 +36,7 @@ async function main() {
     )
     .accounts({
       config: configPDA,
-      authority: provider.wallet.publicKey,
+      admin: provider.wallet.publicKey,
       treasury: provider.wallet.publicKey,
       systemProgram: SystemProgram.programId,
     })

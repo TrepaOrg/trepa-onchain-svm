@@ -9,7 +9,7 @@ export type Trepa = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -55,7 +55,7 @@ export type Trepa = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -225,7 +225,7 @@ export type Trepa = {
         "kind": "struct",
         "fields": [
           {
-            "name": "authority",
+            "name": "admin",
             "type": "publicKey"
           },
           {
@@ -385,7 +385,7 @@ export const IDL: Trepa = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -431,7 +431,7 @@ export const IDL: Trepa = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -601,7 +601,7 @@ export const IDL: Trepa = {
         "kind": "struct",
         "fields": [
           {
-            "name": "authority",
+            "name": "admin",
             "type": "publicKey"
           },
           {

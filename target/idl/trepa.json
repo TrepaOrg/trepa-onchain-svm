@@ -9,7 +9,7 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -55,7 +55,7 @@
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -225,7 +225,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "authority",
+            "name": "admin",
             "type": "publicKey"
           },
           {
@@ -371,8 +371,5 @@
       "name": "RewardsAlreadyClaimed",
       "msg": "Rewards already claimed"
     }
-  ],
-  "metadata": {
-    "address": "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
-  }
+  ]
 }
