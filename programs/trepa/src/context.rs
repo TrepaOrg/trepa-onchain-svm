@@ -1,6 +1,7 @@
 // ===== ACCOUNT STRUCTURES =====
 
 use anchor_lang::prelude::*;
+use anchor_spl::token::{ self, Token, TokenAccount };
 
 #[account]
 pub struct ConfigAccount {
@@ -109,11 +110,24 @@ pub struct Predict<'info> {
     )]
     pub prediction: Account<'info, PredictionAccount>,
     
-    // for spl tokens
-    // #[account(mut)]
-    // pub predictor_token_account: Account<'info, TokenAccount>,
-
+    #[account(
+        mut,
+        constraint = predictor_token_account.owner == predictor.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = predictor_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub predictor_token_account: Account<'info, TokenAccount>,
+    
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,
+    
+    pub wsol_mint: Account<'info, token::Mint>,
+    
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
@@ -145,8 +159,25 @@ pub struct ClaimRewards<'info> {
         constraint = pool.key() == prediction.pool @ ContextError::InvalidPool
     )]
     pub pool: Account<'info, PoolAccount>,
-
+    
+    #[account(
+        mut,
+        constraint = predictor_token_account.owner == predictor.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = predictor_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub predictor_token_account: Account<'info, TokenAccount>,
+    
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,
+    
+    pub wsol_mint: Account<'info, token::Mint>,
+    
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[error_code]
@@ -165,4 +196,10 @@ pub enum ContextError {
 
     #[msg("Rewards already claimed")]
     RewardsAlreadyClaimed,
+
+    #[msg("Invalid mint account")]
+    InvalidMint,
+
+    #[msg("Invalid pool token account owner")]
+    InvalidTokenAccountOwner
 }

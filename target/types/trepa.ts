@@ -149,7 +149,27 @@ export type Trepa = {
           "isSigner": false
         },
         {
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -210,7 +230,27 @@ export type Trepa = {
           "isSigner": false
         },
         {
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -370,6 +410,16 @@ export type Trepa = {
       "code": 6004,
       "name": "RewardsAlreadyClaimed",
       "msg": "Rewards already claimed"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidMint",
+      "msg": "Invalid mint account"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Invalid pool token account owner"
     }
   ]
 };
@@ -525,7 +575,27 @@ export const IDL: Trepa = {
           "isSigner": false
         },
         {
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -586,7 +656,27 @@ export const IDL: Trepa = {
           "isSigner": false
         },
         {
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -746,6 +836,16 @@ export const IDL: Trepa = {
       "code": 6004,
       "name": "RewardsAlreadyClaimed",
       "msg": "Rewards already claimed"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidMint",
+      "msg": "Invalid mint account"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Invalid pool token account owner"
     }
   ]
 };
