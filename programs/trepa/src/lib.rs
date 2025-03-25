@@ -7,7 +7,7 @@ pub mod context;
 pub use context::*;
 
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
+use anchor_spl::token::{self, Transfer};
 
 declare_id!("55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e");
 
@@ -79,7 +79,6 @@ pub mod trepa {
     }
 
     /// Predicts the outcome of a pool
-    // TODO: add handler for adding stake  
     pub fn predict(
         ctx: Context<Predict>,
         pred: u8,
@@ -95,15 +94,16 @@ pub mod trepa {
         prediction.is_claimed = false;
         prediction.bump = ctx.bumps.prediction;
 
-        // Transfer SOL from the predictor to the pool accoun
+        // Transfer WSOL from the predictor's token account to the pool's token account
         let cpi_ctx = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.predictor.to_account_info(),
-                to: ctx.accounts.pool.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.predictor_token_account.to_account_info(),
+                to: ctx.accounts.pool_token_account.to_account_info(),
+                authority: ctx.accounts.predictor.to_account_info(),
             },
         );
-        system_program::transfer(cpi_ctx, stake)?;
+        token::transfer(cpi_ctx, stake)?;
 
         msg!("Prediction made: {} with stake {}", prediction.key(), stake);
         Ok(())
@@ -161,31 +161,29 @@ pub mod trepa {
         ctx: Context<ClaimRewards>,
     ) -> Result<()> {
         let prediction = &mut ctx.accounts.prediction;
-        // let pool = &mut ctx.accounts.pool;
-        // let predictor = &ctx.accounts.predictor;
-        // let system_program = &ctx.accounts.system_program;
         
         let prize = prediction.prize;
         prediction.prize = 0;
         prediction.is_claimed = true;
         
-        // // Store the temporary array in a variable to extend its lifetime.
-        // let bump_seed: &[u8] = &[pool.bump];
-        // let pool_seeds: &[&[u8]] = &[b"pool", &pool.question, bump_seed];
-        // let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
+        // Transfer WSOL from the pool's token account to the predictor's token account
+        let pool_seeds = &[
+            b"pool", 
+            &ctx.accounts.pool.question[..],
+            &[ctx.accounts.pool.bump]
+        ];
+        let signer_seeds = &[&pool_seeds[..]];
         
-        // let cpi_context = CpiContext::new_with_signer(
-        //     system_program.to_account_info(),
-        //     system_program::Transfer {
-        //         from: pool.to_account_info(),
-        //         to: predictor.to_account_info(),
-        //     },
-        //     signer_seeds,
-        // );
-        
-        // system_program::transfer(cpi_context, prize)?;
-        ctx.accounts.pool.sub_lamports(prize)?;
-        ctx.accounts.predictor.add_lamports(prize)?;
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.pool_token_account.to_account_info(),
+                to: ctx.accounts.predictor_token_account.to_account_info(),
+                authority: ctx.accounts.pool.to_account_info(),
+            },
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, prize)?;
 
         msg!("Reward claimed: {} for prediction {}", prize, prediction.key());
         Ok(())
