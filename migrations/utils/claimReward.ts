@@ -4,7 +4,8 @@ import { Trepa } from "../../target/types/trepa";
 import { 
     TOKEN_PROGRAM_ID, 
     getAssociatedTokenAddress, 
-    createAssociatedTokenAccountInstruction 
+    createAssociatedTokenAccountInstruction,
+    createCloseAccountInstruction
 } from "@solana/spl-token";
 
 // WSOL mint address (same on all networks)
@@ -13,7 +14,7 @@ const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 /**
  * Claims rewards for a prediction.
  * @param program - The program instance.
- * @param wallet - The wallet instance.
+ * @param wallet - The wallet instance of the user.
  * @param poolId - The pool ID. (16 bytes uuid)
  */
 export async function claimReward(
@@ -91,6 +92,17 @@ export async function claimReward(
             .instruction()
     );
 
-    console.log(`Transaction created! ${tx}`);
+    // Add an extra instruction to close the predictor's WSOL token account
+    // so that its WSOL is unwrapped (native SOL is returned to the wallet)
+    tx.add(
+        createCloseAccountInstruction(
+            predictorTokenAccount,
+            wallet,
+            wallet,
+            []
+        )
+    );
+
+    console.log(`Transaction created!`);
     return tx;
 }
