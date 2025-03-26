@@ -6,6 +6,7 @@ import { POOL_ID } from "./constants";
 async function main() {
   // Set up the provider and program
   const provider = anchor.AnchorProvider.env();
+  const connecton = provider.connection;
   anchor.setProvider(provider);
   const program = anchor.workspace.Trepa as anchor.Program<Trepa>;
 
@@ -21,6 +22,7 @@ async function main() {
   // Prepare transaction to initialize the Config account
   const tx = await createPrediction(
     program, 
+    connecton,
     provider.wallet.publicKey, 
     poolId, 
     10,
