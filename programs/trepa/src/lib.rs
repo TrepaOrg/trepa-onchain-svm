@@ -127,6 +127,7 @@ pub mod trepa {
         if pool.is_finalized {
             return Err(CustomError::PoolAlreadyFinalized.into());
         }
+        pool.is_finalized = true;
 
         // Get the dynamically passed accounts
         let remaining_accounts = &ctx.remaining_accounts;
@@ -135,6 +136,7 @@ pub mod trepa {
             CustomError::MismatchedPrizeCount
         );
 
+        let mut prize_sum = 0;
         // Process each prediction account dynamically
         for (index, account_info) in remaining_accounts.iter().cloned().enumerate() {
             let mut prediction_acc: PredictionAccount = PredictionAccount::try_deserialize(
@@ -149,11 +151,28 @@ pub mod trepa {
             prediction_acc.prize = prize_amounts[index];
             //msg!("Updated prize for prediction: {}", prediction_account.prize);
             prediction_acc.try_serialize(&mut &mut account_info.data.borrow_mut()[..])?;
+
+            prize_sum += prediction_acc.prize;
         }
 
-        msg!("Pool {} resolved", pool.key());
+        // Transfer WSOL from the pool's token account to the treasury's token account
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.pool_token_account.to_account_info(),
+                to: ctx.accounts.treasury_token_account.to_account_info(),
+                authority: pool.to_account_info(),
+            },
+        );
 
-        pool.is_finalized = true;
+        let balance = ctx.accounts.pool_token_account.amount;
+        if balance > prize_sum {
+            token::transfer(cpi_ctx, balance - prize_sum)?;
+        } else {
+            msg!("Pool {} has insufficient balance to be resolved", pool.key());
+        }
+
+        msg!("Pool {} resolved with prize sum {}", pool.key(), prize_sum);
         Ok(())
     }     
 

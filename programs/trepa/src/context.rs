@@ -140,6 +140,27 @@ pub struct ResolvePool<'info> {
         constraint = !pool.is_finalized @ ContextError::PoolAlreadyFinalized
     )]
     pub pool: Account<'info, PoolAccount>,
+
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,   
+    
+    #[account(
+        mut,
+        constraint = treasury_token_account.owner == config.treasury @ ContextError::InvalidTokenAccountOwner,
+        constraint = treasury_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub treasury_token_account: Account<'info, TokenAccount>,
+
+    pub config: Account<'info, ConfigAccount>,
+
+    pub wsol_mint: Account<'info, token::Mint>,
+    
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }   
 
 #[derive(Accounts)]
