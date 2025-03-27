@@ -24,7 +24,7 @@ async function main() {
     poolId, 
     provider.wallet.publicKey, 
     [0.001],
-    [provider.wallet.publicKey]
+    [provider.wallet.publicKey],
   );
 
   console.log("Pool PDA:", tx.instructions[0].keys[1].pubkey.toBase58());

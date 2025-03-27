@@ -1,6 +1,10 @@
 import { BN, Program } from "@project-serum/anchor";
-import { LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+
+// WSOL mint address (same on all networks)
+const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 
 /**
  * Resolves a pool with the given question and prediction end time.
@@ -19,6 +23,16 @@ export async function resolvePool(
 ): Promise<Transaction> {
     console.log("Program ID:", program.programId.toBase58());
 
+    // Get the PDA for the config
+    const [configPDA] = await PublicKey.findProgramAddressSync(
+        [Buffer.from("config")],
+        program.programId
+    );
+
+    // Fetch the config account data to get the treasury owner.
+    const configAccountData = await program.account.configAccount.fetch(configPDA);
+    const treasuryOwner = configAccountData.treasury;
+
     // Get the PDA for the pool
     const cleanedPoolId = poolId.replace(/-/g, '');
     const poolBytes = Buffer.from(cleanedPoolId, 'hex');
@@ -26,7 +40,6 @@ export async function resolvePool(
         [Buffer.from("pool"), poolBytes],
         program.programId
     );
-    console.log("Pool PDA:", poolPDA.toBase58());
     
     // Get the PDA for the predictions
     const predictionPDA = predictors.map(predictor => {
@@ -41,6 +54,20 @@ export async function resolvePool(
         }
     });
 
+    // Get associated token accounts for WSOL
+    const treasuryTokenAccount = await getAssociatedTokenAddress(
+        WSOL_MINT,
+        treasuryOwner,
+        true // allowOwnerOffCurve = true for PDAs
+    );
+    
+    const poolTokenAccount = await getAssociatedTokenAddress(
+        WSOL_MINT,
+        poolPDA,
+        true // allowOwnerOffCurve = true for PDAs
+    );
+
+
     const prizeAmounts = prizes.map(prize => new BN(prize * LAMPORTS_PER_SOL)); // 0.001 SOL
 
     if (prizeAmounts.length !== predictionPDA.length) {
@@ -52,7 +79,13 @@ export async function resolvePool(
         .resolvePool(prizeAmounts)
         .accounts({
             pool: poolPDA,
-            admin
+            admin,
+            poolTokenAccount: poolTokenAccount,
+            treasuryTokenAccount: treasuryTokenAccount,
+            config: configPDA,
+            wsolMint: WSOL_MINT,
+            systemProgram: SystemProgram.programId,
+            tokenProgram: TOKEN_PROGRAM_ID,
         })
         .remainingAccounts(predictionPDA)
         .transaction();
