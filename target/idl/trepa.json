@@ -451,5 +451,8 @@
       "name": "InvalidTokenAccountOwner",
       "msg": "Invalid pool token account owner"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e"
+  }
 }

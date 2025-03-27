@@ -11,7 +11,7 @@ import {
     TOKEN_PROGRAM_ID, 
     getAssociatedTokenAddress, 
     createAssociatedTokenAccountInstruction,
-    getOrCreateAssociatedTokenAccount
+    createSyncNativeInstruction
 } from "@solana/spl-token";
 
 // WSOL mint address (same on all networks)
@@ -20,6 +20,7 @@ const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 /**
  * Creates a new prediction.
  * @param program - The program instance.
+ * @param connection - The connection instance.
  * @param wallet - The wallet instance.
  * @param poolId - The pool to be predicted. (16 bytes uuid)
  * @param prediction - The prediction to be made. [0, 100]
@@ -66,10 +67,8 @@ export async function createPrediction(
     const tx = new Transaction();
     
     // Check if the predictor token account exists and create it if needed
-    try {
-        await connection.getAccountInfo(predictorTokenAccount);
-        console.log("Predictor token account exists");
-    } catch (thrownObject) {
+    const predictorTokenAccountInfo = await connection.getAccountInfo(predictorTokenAccount);
+    if (!predictorTokenAccountInfo) {
         console.log("Creating predictor token account");
         tx.add(
             createAssociatedTokenAccountInstruction(
@@ -79,23 +78,39 @@ export async function createPrediction(
                 WSOL_MINT
             )
         );
+    } else {
+        console.log("Predictor token account exists");
     }
 
-    // Check if the pool token account exists and create it if needed
-    try {
-        await connection.getAccountInfo(poolTokenAccount);
-        console.log("Pool token account exists");
-    } catch (thrownObject) {
-        console.log("Creating pool token account");
-        tx.add(
-            createAssociatedTokenAccountInstruction(
-                wallet,
-                poolTokenAccount,
-                poolPDA,
-                WSOL_MINT
-            )
-        );
-    }
+     // Check if the pool token account exists and create it if needed
+     const poolTokenAccountInfo = await connection.getAccountInfo(poolTokenAccount);
+     if (!poolTokenAccountInfo) {
+         console.log("Creating pool token account");
+         tx.add(
+             createAssociatedTokenAccountInstruction(
+                 wallet,
+                 poolTokenAccount,
+                 poolPDA,
+                 WSOL_MINT
+             )
+         );
+     } else {
+         console.log("Pool token account exists");
+     }
+
+    // Transfer `stake` SOL from the wallet to the predictor's WSOL token account.
+    tx.add(
+        SystemProgram.transfer({
+            fromPubkey: wallet,
+            toPubkey: predictorTokenAccount,
+            lamports: stake * LAMPORTS_PER_SOL,
+        })
+    );
+    
+    // Sync the native WSOL account to update its balance.
+    tx.add(
+        createSyncNativeInstruction(predictorTokenAccount, TOKEN_PROGRAM_ID)
+    );
     
     tx.add(
         await program.methods
@@ -106,9 +121,9 @@ export async function createPrediction(
                 predictor: wallet,
                 predictorTokenAccount: predictorTokenAccount,
                 poolTokenAccount: poolTokenAccount,
-                wsolMint: WSOL_MINT,
                 systemProgram: SystemProgram.programId,
                 tokenProgram: TOKEN_PROGRAM_ID,
+                wsolMint: WSOL_MINT,
             })
             .instruction()
     );
