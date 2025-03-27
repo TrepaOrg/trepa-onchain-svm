@@ -34,7 +34,7 @@ async function main() {
 }
 
 main()
-  .then(() => console.log("Initialization successful"))
+  .then(() => console.log("Pool created successfully"))
   .catch((err) => {
-    console.error("Error initializing:", err);
+    console.error("Error creating pool:", err);
   });

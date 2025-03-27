@@ -34,7 +34,7 @@ async function main() {
 }
 
 main()
-  .then(() => console.log("Resolved pool successfully"))
+  .then(() => console.log("Pool resolved successfully"))
   .catch((err) => {
     console.error("Error resolving pool:", err);
   });
