@@ -122,6 +122,7 @@ pub mod trepa {
         // if current_timestamp < pool.prediction_end_time {
         //     return Err(CustomError::PredictionNotEnded.into());
         // }
+        pool.is_finalized = true;
 
         // Get the dynamically passed accounts
         let remaining_accounts = &ctx.remaining_accounts;
