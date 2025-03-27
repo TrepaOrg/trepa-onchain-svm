@@ -410,6 +410,9 @@ export type Trepa = {
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "InsufficientFunds"
           }
         ]
       }
@@ -866,6 +869,9 @@ export const IDL: Trepa = {
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "InsufficientFunds"
           }
         ]
       }

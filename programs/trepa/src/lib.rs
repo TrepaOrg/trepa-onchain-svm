@@ -123,12 +123,6 @@ pub mod trepa {
         //     return Err(CustomError::PredictionNotEnded.into());
         // }
 
-        // Check if the pool is already finalized
-        if pool.is_finalized {
-            return Err(CustomError::PoolAlreadyFinalized.into());
-        }
-        pool.is_finalized = true;
-
         // Get the dynamically passed accounts
         let remaining_accounts = &ctx.remaining_accounts;
         require!(
@@ -155,23 +149,34 @@ pub mod trepa {
             prize_sum += prediction_acc.prize;
         }
 
-        // Transfer WSOL from the pool's token account to the treasury's token account
-        let cpi_ctx = CpiContext::new(
+        // Get balance from the pool's token account.
+        let balance = ctx.accounts.pool_token_account.amount;
+        
+        if balance < prize_sum {
+            msg!("Pool {} has insufficient balance {}", pool.key(), balance);
+            return Err(CustomError::InsufficientFunds.into());
+        }
+
+        // Since pool is a PDA, create its signer seeds for CPI.
+        let pool_seeds: &[&[u8]] = &[
+            &b"pool"[..],
+            &pool.question[..],
+            &[pool.bump],
+        ];
+        let signer_seeds = &[&pool_seeds[..]];
+        
+        // Transfer the remaining balance (balance - prize_sum) from pool token account to treasury token account.
+        let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
                 from: ctx.accounts.pool_token_account.to_account_info(),
                 to: ctx.accounts.treasury_token_account.to_account_info(),
                 authority: pool.to_account_info(),
             },
+            signer_seeds,
         );
-
-        let balance = ctx.accounts.pool_token_account.amount;
-        if balance > prize_sum {
-            token::transfer(cpi_ctx, balance - prize_sum)?;
-        } else {
-            msg!("Pool {} has insufficient balance to be resolved", pool.key());
-        }
-
+        token::transfer(cpi_ctx, balance - prize_sum)?;
+        
         msg!("Pool {} resolved with prize sum {}", pool.key(), prize_sum);
         Ok(())
     }     
@@ -186,8 +191,8 @@ pub mod trepa {
         prediction.is_claimed = true;
         
         // Transfer WSOL from the pool's token account to the predictor's token account
-        let pool_seeds = &[
-            b"pool", 
+        let pool_seeds: &[&[u8]] = &[
+            &b"pool"[..],
             &ctx.accounts.pool.question[..],
             &[ctx.accounts.pool.bump]
         ];
@@ -228,4 +233,7 @@ pub enum CustomError {
 
     #[msg("Mismatched prize count")]
     MismatchedPrizeCount,   
+
+    #[msg("Insufficient funds")]
+    InsufficientFunds,
 }
