@@ -364,6 +364,10 @@ export type Trepa = {
         "kind": "struct",
         "fields": [
           {
+            "name": "predictor",
+            "type": "publicKey"
+          },
+          {
             "name": "pool",
             "type": "publicKey"
           },
@@ -422,7 +426,7 @@ export type Trepa = {
     {
       "code": 6000,
       "name": "Unauthorized",
-      "msg": "Unauthorized update"
+      "msg": "Unauthorized admin action"
     },
     {
       "code": 6001,
@@ -446,13 +450,23 @@ export type Trepa = {
     },
     {
       "code": 6005,
+      "name": "UnauthorizedClaim",
+      "msg": "Unauthorized claim"
+    },
+    {
+      "code": 6006,
       "name": "InvalidMint",
       "msg": "Invalid mint account"
     },
     {
-      "code": 6006,
+      "code": 6007,
       "name": "InvalidTokenAccountOwner",
       "msg": "Invalid pool token account owner"
+    },
+    {
+      "code": 6008,
+      "name": "PoolNotFinalized",
+      "msg": "Pool not finalized"
     }
   ]
 };
@@ -823,6 +837,10 @@ export const IDL: Trepa = {
         "kind": "struct",
         "fields": [
           {
+            "name": "predictor",
+            "type": "publicKey"
+          },
+          {
             "name": "pool",
             "type": "publicKey"
           },
@@ -881,7 +899,7 @@ export const IDL: Trepa = {
     {
       "code": 6000,
       "name": "Unauthorized",
-      "msg": "Unauthorized update"
+      "msg": "Unauthorized admin action"
     },
     {
       "code": 6001,
@@ -905,13 +923,23 @@ export const IDL: Trepa = {
     },
     {
       "code": 6005,
+      "name": "UnauthorizedClaim",
+      "msg": "Unauthorized claim"
+    },
+    {
+      "code": 6006,
       "name": "InvalidMint",
       "msg": "Invalid mint account"
     },
     {
-      "code": 6006,
+      "code": 6007,
       "name": "InvalidTokenAccountOwner",
       "msg": "Invalid pool token account owner"
+    },
+    {
+      "code": 6008,
+      "name": "PoolNotFinalized",
+      "msg": "Pool not finalized"
     }
   ]
 };

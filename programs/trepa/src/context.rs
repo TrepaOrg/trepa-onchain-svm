@@ -16,7 +16,7 @@ pub struct ConfigAccount {
 
 #[account]
 pub struct PoolAccount {
-    pub question: [u8; 16],           // The prediction question (identifier) always 16 bytes
+    pub question: [u8; 16],         // The prediction question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends
     pub total_stake: u64,           // Total tokens staked
     pub is_finalized: bool,         // Whether the spark has been finalized
@@ -25,7 +25,7 @@ pub struct PoolAccount {
 
 #[account]
 pub struct PredictionAccount {
-    //pub predictor: Pubkey,          // Predictor's public key
+    pub predictor: Pubkey,          // Predictor's public key
     pub pool: Pubkey,               // Associated spark/pool
     pub prediction_value: u8,       // Predicted "Yes" percentage (0-100)
     //pub stake_amount: u64,          // Amount staked needed for spl tokens
@@ -181,7 +181,8 @@ pub struct ClaimRewards<'info> {
         mut,
         close = predictor,
         constraint = prediction.pool == pool.key() @ ContextError::InvalidPool,
-        constraint = !prediction.is_claimed @ ContextError::RewardsAlreadyClaimed
+        constraint = !prediction.is_claimed @ ContextError::RewardsAlreadyClaimed,
+        constraint = prediction.predictor == predictor.key() @ ContextError::UnauthorizedClaim
     )]
     pub prediction: Account<'info, PredictionAccount>,
 
@@ -227,6 +228,9 @@ pub enum ContextError {
 
     #[msg("Rewards already claimed")]
     RewardsAlreadyClaimed,
+
+    #[msg("Unauthorized claim")]
+    UnauthorizedClaim,
 
     #[msg("Invalid mint account")]
     InvalidMint,

@@ -93,6 +93,7 @@ pub mod trepa {
         prediction.prize = 0;
         prediction.is_claimed = false;
         prediction.bump = ctx.bumps.prediction;
+        prediction.predictor = ctx.accounts.predictor.key();
 
         // Transfer WSOL from the predictor's token account to the pool's token account
         let cpi_ctx = CpiContext::new(
