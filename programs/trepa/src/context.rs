@@ -73,7 +73,10 @@ pub struct UpdateConfig<'info> {
 #[derive(Accounts)]
 #[instruction(question: [u8; 16], prediction_end_time: i64)]
 pub struct CreatePool<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        //constraint = admin.key() == config.admin @ ContextError::Unauthorized
+    )]
     pub admin: Signer<'info>,
 
     #[account(
@@ -85,6 +88,8 @@ pub struct CreatePool<'info> {
         constraint = prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
+
+    //pub config: Account<'info, ConfigAccount>,
     
     pub system_program: Program<'info, System>,
     pub clock: Sysvar<'info, Clock>,
@@ -133,7 +138,10 @@ pub struct Predict<'info> {
 
 #[derive(Accounts)]
 pub struct ResolvePool<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        //constraint = admin.key() == config.admin @ ContextError::Unauthorized
+    )]
     pub admin: Signer<'info>,
     
     #[account(
@@ -205,7 +213,7 @@ pub struct ClaimRewards<'info> {
 
 #[error_code]
 pub enum ContextError {
-    #[msg("Unauthorized update")]
+    #[msg("Unauthorized admin action")]
     Unauthorized,
 
     #[msg("Pool already finalized")]
