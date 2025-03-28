@@ -101,11 +101,12 @@ pub struct Predict<'info> {
     )]
     pub pool: Account<'info, PoolAccount>,
     
+    // todo do we need it (for claiming - yes)
     #[account(
         init,
         payer = predictor,
         space = 8 + std::mem::size_of::<PredictionAccount>(),
-        seeds = [b"prediction", pool.key().as_ref(), predictor.key().as_ref()],
+        seeds = [b"prediction", pool.key().as_ref(), predictor.key().as_ref()], // todo change to Uuid
         bump
     )]
     pub prediction: Account<'info, PredictionAccount>,
@@ -170,14 +171,15 @@ pub struct ClaimRewards<'info> {
     
     #[account(
         mut,
+        close = predictor,
         constraint = prediction.pool == pool.key() @ ContextError::InvalidPool,
-        constraint = prediction.is_claimed == false @ ContextError::RewardsAlreadyClaimed
+        constraint = !prediction.is_claimed @ ContextError::RewardsAlreadyClaimed
     )]
     pub prediction: Account<'info, PredictionAccount>,
 
     #[account(
         mut,
-        constraint = pool.key() == prediction.pool @ ContextError::InvalidPool
+        constraint = pool.is_finalized @ ContextError::PoolNotFinalized
     )]
     pub pool: Account<'info, PoolAccount>,
     
@@ -222,5 +224,8 @@ pub enum ContextError {
     InvalidMint,
 
     #[msg("Invalid pool token account owner")]
-    InvalidTokenAccountOwner
+    InvalidTokenAccountOwner,
+
+    #[msg("Pool not finalized")]
+    PoolNotFinalized,
 }
