@@ -92,8 +92,7 @@ export async function claimReward(
             .instruction()
     );
 
-    // Add an extra instruction to close the predictor's WSOL token account
-    // so that its WSOL is unwrapped (native SOL is returned to the wallet)
+    // close the predictor's WSOL token account so that its SOL is unwrapped
     tx.add(
         createCloseAccountInstruction(
             predictorTokenAccount,
