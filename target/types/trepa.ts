@@ -398,16 +398,7 @@ export type Trepa = {
         "kind": "enum",
         "variants": [
           {
-            "name": "ConfigAlreadyExists"
-          },
-          {
-            "name": "QuestionTooLong"
-          },
-          {
             "name": "PredictionNotEnded"
-          },
-          {
-            "name": "PoolAlreadyFinalized"
           },
           {
             "name": "InvalidPool"
@@ -871,16 +862,7 @@ export const IDL: Trepa = {
         "kind": "enum",
         "variants": [
           {
-            "name": "ConfigAlreadyExists"
-          },
-          {
-            "name": "QuestionTooLong"
-          },
-          {
             "name": "PredictionNotEnded"
-          },
-          {
-            "name": "PoolAlreadyFinalized"
           },
           {
             "name": "InvalidPool"

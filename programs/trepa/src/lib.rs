@@ -120,9 +120,10 @@ pub mod trepa {
         // Check if the pool is not ended 
         // TODO: enable this
         // let current_timestamp = Clock::get()?.unix_timestamp;
-        // if current_timestamp < pool.prediction_end_time {
-        //     return Err(CustomError::PredictionNotEnded.into());
-        // }
+        // require!(
+        //     current_timestamp >= pool.prediction_end_time,
+        //     CustomError::PredictionNotEnded
+        // );
         pool.is_finalized = true;
 
         // Get the dynamically passed accounts
@@ -154,10 +155,10 @@ pub mod trepa {
         // Get balance from the pool's token account.
         let balance = ctx.accounts.pool_token_account.amount;
         
-        if balance < prize_sum {
-            msg!("Pool {} has insufficient balance {}", pool.key(), balance);
-            return Err(CustomError::InsufficientFunds.into());
-        }
+        require!(
+            balance >= prize_sum, 
+            CustomError::InsufficientFunds
+        );
 
         // Since pool is a PDA, create its signer seeds for CPI.
         let pool_seeds: &[&[u8]] = &[
@@ -218,17 +219,8 @@ pub mod trepa {
 
 #[error_code]
 pub enum CustomError {
-    #[msg("Config account already exists.")]
-    ConfigAlreadyExists,
-
-    #[msg("Question string is too long. Maximum allowed is 16 bytes.")]
-    QuestionTooLong,
-
     #[msg("Prediction not ended")]
     PredictionNotEnded,
-
-    #[msg("Pool already finalized")]
-    PoolAlreadyFinalized,
 
     #[msg("Invalid pool")]
     InvalidPool,

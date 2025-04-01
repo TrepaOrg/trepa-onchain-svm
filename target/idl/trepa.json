@@ -398,16 +398,7 @@
         "kind": "enum",
         "variants": [
           {
-            "name": "ConfigAlreadyExists"
-          },
-          {
-            "name": "QuestionTooLong"
-          },
-          {
             "name": "PredictionNotEnded"
-          },
-          {
-            "name": "PoolAlreadyFinalized"
           },
           {
             "name": "InvalidPool"
