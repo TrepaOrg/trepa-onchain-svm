@@ -3,10 +3,9 @@ use solana_sdk::{
     pubkey::Pubkey,
     instruction::Instruction,  // Use the Instruction from solana_sdk
 };
-use anchor_lang::{InstructionData, ToAccountMetas};
+use anchor_lang::{InstructionData, ToAccountMetas, AnchorSerialize, AnchorDeserialize};
 use anchor_lang::prelude::{AccountMeta};
 
-use crate::constants::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct ProveResolution {
@@ -58,7 +57,7 @@ pub fn upload_merkle_root_ix(
 
     Instruction {
         program_id,
-        data: InstructionData { root }.data(),
+        data: Instruction { root }.data(),
         accounts: account_metas,
     }
 }

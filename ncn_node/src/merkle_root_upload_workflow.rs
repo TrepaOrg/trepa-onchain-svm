@@ -2,7 +2,7 @@ use {
     crate::{
         read_json_from_file, sign_and_send_transactions_with_retries, GeneratedMerkleTree,
     },
-    crate::upload_merkle_root_ix::{upload_merkle_root_ix, UploadMerkleRootAccounts},
+    crate::upload_merkle_root_ix::{upload_merkle_root_ix, ProveResolutionAccounts},
     anchor_lang::AccountDeserialize,
     log::{error, info},
     solana_client::nonblocking::rpc_client::RpcClient,
@@ -118,10 +118,14 @@ pub fn upload_merkle_root(
                 let ix = upload_merkle_root_ix(
                     *program_id,
                     tree.merkle_root.to_bytes(),
-                    UploadMerkleRootAccounts {
+                    ProveResolutionAccounts {
                         merkle_root_upload_authority: keypair.pubkey(),
-                        pool_account: pool_pda,
+                        pool: pool_pda,
                         pool_token_account: pool_token_account,
+                        treasury_token_account: treasury_token_account,
+                        config: config,
+                        wsol_mint: wsol_mint,
+                        token_program: token_program,
                     },
                 );
                 Transaction::new_with_payer(
