@@ -85,6 +85,7 @@ impl GeneratedMerkleTree {
                     merkle_root_upload_authority: prize_collection.merkle_root_upload_authority,
                     merkle_root: *merkle_tree.get_root().unwrap(),
                     tree_nodes,
+                    max_num_nodes,
                 }))
             })
             .collect::<Result<Vec<GeneratedMerkleTree>, MerkleRootGeneratorError>>()?;
@@ -149,6 +150,10 @@ pub struct PrizeCollection {
     /// base58 encoded prediction program id.
     #[serde(with = "pubkey_string_conversion")]
     pub program_id: Pubkey,
+
+    /// The pubkey of the pool account.
+    #[serde(with = "pubkey_string_conversion")]
+    pub pool_pda: Pubkey,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq, Eq)]
