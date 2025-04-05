@@ -1,9 +1,9 @@
 use {
+    crate::constants::{CONFIG_ACCOUNT_PUBKEY, TREASURY_TOKEN_ACCOUNT_PUBKEY, TOKEN_PROGRAM_PUBKEY},
     crate::{
         read_json_from_file, sign_and_send_transactions_with_retries, GeneratedMerkleTree,
     },
     crate::upload_merkle_root_ix::{upload_merkle_root_ix, ProveResolutionAccounts},
-    anchor_lang::AccountDeserialize,
     log::{error, info},
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_program::{
@@ -15,6 +15,8 @@ use {
         signature::{read_keypair_file, Signer},
         transaction::Transaction,
     },
+    anchor_lang::{AnchorDeserialize, AnchorSerialize},
+    borsh::{BorshDeserialize, BorshSerialize},
     std::{path::PathBuf, time::Duration},
     thiserror::Error,
     tokio::runtime::Builder,
@@ -143,4 +145,16 @@ pub fn upload_merkle_root(
     });
 
     Ok(())
+}
+
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
+pub struct PoolAccount {
+    pub question: [u8; 16],         // The prediction question (identifier) always 16 bytes
+    pub prediction_end_time: i64,   // When prediction period ends
+    pub total_stake: u64,           // Total tokens staked
+    pub is_being_resolved: bool,    // Whether the pool is being resolved
+    pub is_finalized: bool,         // Whether the pool has been finalized and proved
+    pub bump: u8,                   // PDA bump
+    pub proof: i64,                 // Proof of the pool resolution (root)
+    pub prize_sum: u64,             // Sum of the prizes
 }

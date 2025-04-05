@@ -3,11 +3,11 @@ use solana_sdk::{
     pubkey::Pubkey,
     instruction::Instruction,  // Use the Instruction from solana_sdk
 };
-use anchor_lang::{InstructionData, ToAccountMetas, AnchorSerialize, AnchorDeserialize};
+use anchor_lang::{InstructionData, ToAccountMetas};
 use anchor_lang::prelude::{AccountMeta};
+use borsh::{BorshSerialize, BorshDeserialize};
 
-
-#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct ProveResolution {
     pub root: [u8; 32],
 }
@@ -23,7 +23,7 @@ pub struct ProveResolutionAccounts {
 }
 
 impl ToAccountMetas for ProveResolutionAccounts {
-    fn to_account_metas(&self, _program_id: Option<&Pubkey>) -> Vec<AccountMeta> {
+    fn to_account_metas(&self, _program_id: Option<bool>) -> Vec<AccountMeta> {
         vec![
             // Assume the upload authority must be a signer and mutable:
             AccountMeta::new(self.merkle_root_upload_authority, true),
@@ -45,13 +45,13 @@ pub fn upload_merkle_root_ix(
 ) -> Instruction {
 
     let account_metas = ProveResolutionAccounts {
-        merkle_root_upload_authority,
-        pool,
-        pool_token_account,
-        treasury_token_account,
-        config,
-        wsol_mint,
-        token_program,
+        merkle_root_upload_authority: accounts.merkle_root_upload_authority,
+        pool: accounts.pool,
+        pool_token_account: accounts.pool_token_account,
+        treasury_token_account: accounts.treasury_token_account,
+        config: accounts.config,
+        wsol_mint: accounts.wsol_mint,
+        token_program: accounts.token_program,
     }
     .to_account_metas(None);
 

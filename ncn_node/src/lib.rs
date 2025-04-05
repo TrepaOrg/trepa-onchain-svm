@@ -8,7 +8,6 @@ use {
     serde::{de::DeserializeOwned, Deserialize, Serialize},
     solana_client::{
         nonblocking::rpc_client::RpcClient,
-        rpc_client::{RpcClient as SyncRpcClient},
     },
     solana_merkle_tree::MerkleTree,
     solana_program::{
@@ -39,7 +38,7 @@ use {
         sync::Arc,
         time::{Duration, Instant},
     },
-    tokio::{sync::Semaphore, time::sleep},
+    tokio::{sync::Semaphore},
 };
 
 // #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -90,6 +89,7 @@ impl GeneratedMerkleTree {
         })
     }
 }
+
 
 pub fn get_proof(merkle_tree: &MerkleTree, i: usize) -> Vec<[u8; 32]> {
     let mut proof = Vec::new();
@@ -339,4 +339,22 @@ where
     let reader = BufReader::new(file);
     serde_json::from_reader(reader)
 }
+
+
+use std::fmt;
+
+// Define the concrete error type.
+#[derive(Debug)]
+pub enum MerkleRootGeneratorError {
+    SomeError(String),
+}
+
+impl fmt::Display for MerkleRootGeneratorError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MerkleRootGeneratorError::SomeError(msg) => write!(f, "MerkleRootGeneratorError: {}", msg),
+        }
+    }
+}
+
 
