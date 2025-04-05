@@ -232,7 +232,7 @@ export type Trepa = {
       ],
       "accounts": [
         {
-          "name": "admin",
+          "name": "merkleRootUploadAuthority",
           "isMut": true,
           "isSigner": true
         },
@@ -747,7 +747,7 @@ export const IDL: Trepa = {
       ],
       "accounts": [
         {
-          "name": "admin",
+          "name": "merkleRootUploadAuthority",
           "isMut": true,
           "isSigner": true
         },

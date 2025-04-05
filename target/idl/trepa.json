@@ -232,7 +232,7 @@
       ],
       "accounts": [
         {
-          "name": "admin",
+          "name": "merkleRootUploadAuthority",
           "isMut": true,
           "isSigner": true
         },
