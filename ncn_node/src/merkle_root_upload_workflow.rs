@@ -80,21 +80,20 @@ pub fn upload_merkle_root(
         let mut trees_needing_update: Vec<GeneratedMerkleTree> = vec![];
         for tree in trees {
             let account = rpc_client
-                .get_account(&tree.tip_distribution_account)
+                .get_account(pool_pda)
                 .await
                 .expect("fetch expect");
 
             let mut data = account.data.as_slice();
-            let fetched_tip_distribution_account =
-                TipDistributionAccount::try_deserialize(&mut data)
-                    .expect("failed to deserialize tip_distribution_account state");
+            let fetched_pool_account =
+                PoolAccount::try_deserialize(&mut data)
+                    .expect("failed to deserialize pool_account state");
 
-            let needs_upload = match fetched_tip_distribution_account.merkle_root {
-                Some(merkle_root) => {
-                    merkle_root.total_funds_claimed == 0
-                        && merkle_root.root != tree.merkle_root.to_bytes()
+            let needs_upload = match fetched_pool_account.is_being_resolved {
+                Some(!is_being_resolved) => {
+                    is_being_resolved == true
                 }
-                None => true,
+                None => false,
             };
 
             if needs_upload {
@@ -108,16 +107,16 @@ pub fn upload_merkle_root(
             .iter()
             .map(|tree| {
                 let ix = upload_merkle_root_ix(
-                    *tip_distribution_program_id,
+                    *prediction_program_id,
                     UploadMerkleRootArgs {
                         root: tree.merkle_root.to_bytes(),
                         max_total_claim: tree.max_total_claim,
                         max_num_nodes: tree.max_num_nodes,
                     },
                     UploadMerkleRootAccounts {
-                        config: tip_distribution_config,
+                        config: prediction__config,
                         merkle_root_upload_authority: keypair.pubkey(),
-                        tip_distribution_account: tree.tip_distribution_account,
+                        pool_account: tree.pool_pda,
                     },
                 );
                 Transaction::new_with_payer(
