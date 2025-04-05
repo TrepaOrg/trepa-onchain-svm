@@ -59,7 +59,6 @@ async fn main() -> Result<()> {
                 }
 
                 if let Some(meta) = &tx.transaction.meta {
-                    println!("log transaction: {:?}", meta);
                     if let OptionSerializer::Some(logs) = &meta.log_messages {
                         if logs.iter().any(|log| log.contains("Instruction: ResolvePool")) {
                             println!("Detected event: {:?}", logs);
