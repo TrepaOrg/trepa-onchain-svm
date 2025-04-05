@@ -10,8 +10,8 @@ publish = false
 
 [dependencies]
 anchor-lang = "0.27.0"
-borsh = { version = "1.5.5", features = ["derive", "unstable__schema"] }
-clap = "2.33.1"
+borsh = "0.9.3"
+clap = { version = "4.1.11", features = ["derive", "env"] }
 env_logger = "0.9.3"
 futures = "0.3.31"
 gethostname = "0.2.3"
