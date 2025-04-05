@@ -23,11 +23,6 @@ pub static TREASURY_TOKEN_ACCOUNT_PUBKEY: Lazy<Pubkey> = Lazy::new(|| {
         .expect("Invalid TREASURY_TOKEN_ACCOUNT pubkey")
 });
 
-/// Parsed Config Account as a Pubkey.
-pub static CONFIG_ACCOUNT_PUBKEY: Lazy<Pubkey> = Lazy::new(|| {
-    Pubkey::from_str(CONFIG_ACCOUNT).expect("Invalid CONFIG_ACCOUNT pubkey")
-});
-
 /// Parsed WSOL Mint as a Pubkey.
 pub static WSOL_MINT_PUBKEY: Lazy<Pubkey> = Lazy::new(|| {
     Pubkey::from_str(WSOL_MINT).expect("Invalid WSOL_MINT pubkey")

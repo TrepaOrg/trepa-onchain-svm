@@ -1,24 +1,13 @@
-pub mod claim_mev_workflow;
-pub mod merkle_root_generator_workflow;
 pub mod merkle_root_upload_workflow;
-pub mod reclaim_rent_workflow;
-pub mod stake_meta_generator_workflow;
+pub mod constants;
+pub mod utils;
+pub use utils::upload_merkle_root_ix;
 
 use {
-    crate::{
-        merkle_root_generator_workflow::MerkleRootGeneratorError,
-        stake_meta_generator_workflow::StakeMetaGeneratorError::CheckedMathError,
-    },
-    anchor_lang::Id,
-    jito_tip_distribution::{
-        program::JitoTipDistribution,
-        state::{ClaimStatus, TipDistributionAccount},
-    },
-    log::*,
     serde::{de::DeserializeOwned, Deserialize, Serialize},
     solana_client::{
         nonblocking::rpc_client::RpcClient,
-        rpc_client::{RpcClient as SyncRpcClient, SerializableTransaction},
+        rpc_client::{RpcClient as SyncRpcClient},
     },
     solana_merkle_tree::MerkleTree,
     solana_metrics::{datapoint_error, datapoint_warn},
@@ -30,18 +19,13 @@ use {
     },
     solana_rpc_client_api::{
         client_error::{Error, ErrorKind},
-        config::RpcSendTransactionConfig,
-        request::{RpcError, RpcResponseErrorData, MAX_MULTIPLE_ACCOUNTS},
+        request::{RpcError, RpcResponseErrorData},
         response::RpcSimulateTransactionResult,
     },
     solana_sdk::{
-        account::{Account, AccountSharedData, ReadableAccount},
-        clock::Slot,
-        commitment_config::{CommitmentConfig, CommitmentLevel},
         hash::{Hash, Hasher},
         pubkey::Pubkey,
         signature::{Keypair, Signature},
-        stake_history::Epoch,
         transaction::{
             Transaction,
             TransactionError::{self},
@@ -49,7 +33,7 @@ use {
     },
     solana_transaction_status::TransactionStatus,
     std::{
-        collections::{HashMap, HashSet},
+        collections::HashMap,
         fs::File,
         io::BufReader,
         path::PathBuf,
@@ -59,10 +43,10 @@ use {
     tokio::{sync::Semaphore, time::sleep},
 };
 
-#[derive(Clone, Deserialize, Serialize, Debug)]
-pub struct GeneratedMerkleTreeCollection {
-    pub generated_merkle_trees: Vec<GeneratedMerkleTree>,
-}
+// #[derive(Clone, Deserialize, Serialize, Debug)]
+// pub struct GeneratedMerkleTreeCollection {
+//     pub generated_merkle_trees: Vec<GeneratedMerkleTree>,
+// }
 
 #[derive(Clone, Eq, Debug, Hash, PartialEq, Deserialize, Serialize)]
 pub struct GeneratedMerkleTree {
@@ -72,36 +56,22 @@ pub struct GeneratedMerkleTree {
     pub merkle_root_upload_authority: Pubkey,
     pub merkle_root: Hash,
     pub tree_nodes: Vec<TreeNode>,
+    pub max_num_nodes: u64,
 }
 
-impl GeneratedMerkleTreeCollection {
+impl GeneratedMerkleTree {
     pub fn new_from_prize_meta_collection(
         prize_collection: &PrizeCollection,
         maybe_rpc_client: Option<SyncRpcClient>,
-    ) -> Result<GeneratedMerkleTreeCollection, MerkleRootGeneratorError> {
-        let generated_merkle_trees = prize_collection
+    ) -> Result<GeneratedMerkleTree, MerkleRootGeneratorError> {
+        let generated_merkle_tree = prize_collection
             .prize_metas
             .into_iter()
             .filter_map(|prize_meta| {
-                let mut tree_nodes = match TreeNode::vec_from_prize_meta(&prize_meta) {
-                    Err(e) => return Some(Err(e)),
-                    Ok(maybe_tree_nodes) => maybe_tree_nodes,
-                }?;
-
-                if let Some(rpc_client) = &maybe_rpc_client {
-                    if let Some(tda) = stake_meta.maybe_tip_distribution_meta.as_ref() {
-                        emit_inconsistent_tree_node_amount_dp(
-                            &tree_nodes[..],
-                            &tda.tip_distribution_pubkey,
-                            rpc_client,
-                        );
-                    }
-                }
+                let mut tree_node = TreeNode::new(prize_meta.predictor, prize_meta.prize_amount);
 
                 let hashed_nodes: Vec<[u8; 32]> =
                     tree_nodes.iter().map(|n| n.hash().to_bytes()).collect();
-
-                let tip_distribution_meta = stake_meta.maybe_tip_distribution_meta.unwrap();
 
                 let merkle_tree = MerkleTree::new(&hashed_nodes[..], true);
                 let max_num_nodes = tree_nodes.len() as u64;
@@ -112,17 +82,15 @@ impl GeneratedMerkleTreeCollection {
 
                 Some(Ok(GeneratedMerkleTree {
                     max_num_nodes,
-                    merkle_root_upload_authority: tip_distribution_meta
-                        .merkle_root_upload_authority,
+                    merkle_root_upload_authority: prize_collection.merkle_root_upload_authority,
                     merkle_root: *merkle_tree.get_root().unwrap(),
                     tree_nodes,
-                    max_total_claim: tip_distribution_meta.total_tips,
                 }))
             })
             .collect::<Result<Vec<GeneratedMerkleTree>, MerkleRootGeneratorError>>()?;
 
-        Ok(GeneratedMerkleTreeCollection {
-            generated_merkle_trees,
+        Ok(GeneratedMerkleTree {
+            generated_merkle_tree,
         })
     }
 }
@@ -146,140 +114,62 @@ pub fn get_proof(merkle_tree: &MerkleTree, i: usize) -> Vec<[u8; 32]> {
 pub struct TreeNode {
     /// The stake account entitled to redeem.
     #[serde(with = "pubkey_string_conversion")]
-    pub claimant: Pubkey,
-
-    /// Pubkey of the ClaimStatus PDA account, this account should be closed to reclaim rent.
-    #[serde(with = "pubkey_string_conversion")]
-    pub claim_status_pubkey: Pubkey,
-
-    /// Bump of the ClaimStatus PDA account
-    pub claim_status_bump: u8,
-
-    #[serde(with = "pubkey_string_conversion")]
-    pub staker_pubkey: Pubkey,
-
-    #[serde(with = "pubkey_string_conversion")]
-    pub withdrawer_pubkey: Pubkey,
+    pub predictor: Pubkey,
 
     /// The amount this account is entitled to.
-    pub amount: u64,
+    pub prize_amount: u64,
 
     /// The proof associated with this TreeNode
     pub proof: Option<Vec<[u8; 32]>>,
 }
 
 impl TreeNode {
-    fn vec_from_stake_meta(
-        stake_meta: &StakeMeta,
-    ) -> Result<Option<Vec<TreeNode>>, MerkleRootGeneratorError> {
-        if let Some(tip_distribution_meta) = stake_meta.maybe_tip_distribution_meta.as_ref() {
-            let validator_amount = (tip_distribution_meta.total_tips as u128)
-                .checked_mul(tip_distribution_meta.validator_fee_bps as u128)
-                .unwrap()
-                .checked_div(10_000)
-                .unwrap() as u64;
-            let (claim_status_pubkey, claim_status_bump) = Pubkey::find_program_address(
-                &[
-                    ClaimStatus::SEED,
-                    &stake_meta.validator_vote_account.to_bytes(),
-                    &tip_distribution_meta.tip_distribution_pubkey.to_bytes(),
-                ],
-                &JitoTipDistribution::id(),
-            );
-            let mut tree_nodes = vec![TreeNode {
-                claimant: stake_meta.validator_vote_account,
-                claim_status_pubkey,
-                claim_status_bump,
-                staker_pubkey: Pubkey::default(),
-                withdrawer_pubkey: Pubkey::default(),
-                amount: validator_amount,
-                proof: None,
-            }];
-
-            let remaining_total_rewards = tip_distribution_meta
-                .total_tips
-                .checked_sub(validator_amount)
-                .unwrap() as u128;
-
-            let total_delegated = stake_meta.total_delegated as u128;
-            tree_nodes.extend(
-                stake_meta
-                    .delegations
-                    .iter()
-                    .map(|delegation| {
-                        let amount_delegated = delegation.lamports_delegated as u128;
-                        let reward_amount = (amount_delegated.checked_mul(remaining_total_rewards))
-                            .unwrap()
-                            .checked_div(total_delegated)
-                            .unwrap();
-                        let (claim_status_pubkey, claim_status_bump) = Pubkey::find_program_address(
-                            &[
-                                ClaimStatus::SEED,
-                                &delegation.stake_account_pubkey.to_bytes(),
-                                &tip_distribution_meta.tip_distribution_pubkey.to_bytes(),
-                            ],
-                            &JitoTipDistribution::id(),
-                        );
-                        Ok(TreeNode {
-                            claimant: delegation.stake_account_pubkey,
-                            claim_status_pubkey,
-                            claim_status_bump,
-                            staker_pubkey: delegation.staker_pubkey,
-                            withdrawer_pubkey: delegation.withdrawer_pubkey,
-                            amount: reward_amount as u64,
-                            proof: None,
-                        })
-                    })
-                    .collect::<Result<Vec<TreeNode>, MerkleRootGeneratorError>>()?,
-            );
-
-            Ok(Some(tree_nodes))
-        } else {
-            Ok(None)
+    pub fn new(predictor: Pubkey, prize_amount: u64) -> Self {
+        TreeNode {
+            predictor,
+            prize_amount,
+            proof: None,
         }
     }
 
     fn hash(&self) -> Hash {
         let mut hasher = Hasher::default();
-        hasher.hash(self.claimant.as_ref());
-        hasher.hash(self.amount.to_le_bytes().as_ref());
+        hasher.hash(self.predictor.as_ref());
+        hasher.hash(self.prize_amount.to_le_bytes().as_ref());
         hasher.result()
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PrizeCollection {
+    /// The pubkey of the account that will be used to upload the merkle root.
+    pub merkle_root_upload_authority: Pubkey,
+
     /// List of [PrizeMeta].
     pub prize_metas: Vec<PrizeMeta>,
 
     /// base58 encoded prediction program id.
     #[serde(with = "pubkey_string_conversion")]
-    pub prediction_program_id: Pubkey,
+    pub program_id: Pubkey,
 }
 
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct PrizeMeta {
     #[serde(with = "pubkey_string_conversion")]
-    pub prediction_pubkey: Pubkey,
+    pub predictor: Pubkey,
 
     /// The total amount of delegations to the validator.
     pub prize_amount: u64,
 }
 
-impl Ord for StakeMeta {
+impl Ord for PrizeMeta {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.validator_vote_account
-            .cmp(&other.validator_vote_account)
+        self.predictor_pubkey
+            .cmp(&other.predictor_pubkey)
     }
 }
 
-impl PartialOrd<Self> for StakeMeta {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialOrd<Self> for Delegation {
+impl PartialOrd<Self> for PrizeMeta {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -356,119 +246,6 @@ pub async fn sign_and_send_transactions_with_retries(
     (transactions_to_process.values().cloned().collect(), errors)
 }
 
-pub async fn send_until_blockhash_expires(
-    rpc_client: &RpcClient,
-    transactions: Vec<Transaction>,
-    blockhash: Hash,
-    keypair: &Arc<Keypair>,
-) -> solana_rpc_client_api::client_error::Result<()> {
-    let mut claim_transactions: HashMap<Signature, Transaction> = transactions
-        .into_iter()
-        .map(|mut tx| {
-            tx.sign(&[&keypair], blockhash);
-            (*tx.get_signature(), tx)
-        })
-        .collect();
-
-    let txs_requesting_send = claim_transactions.len();
-
-    while rpc_client
-        .is_blockhash_valid(&blockhash, CommitmentConfig::processed())
-        .await?
-    {
-        let mut check_signatures = HashSet::with_capacity(claim_transactions.len());
-        let mut already_processed = HashSet::with_capacity(claim_transactions.len());
-        let mut is_blockhash_not_found = false;
-
-        for (signature, tx) in &claim_transactions {
-            match rpc_client
-                .send_transaction_with_config(
-                    tx,
-                    RpcSendTransactionConfig {
-                        skip_preflight: false,
-                        preflight_commitment: Some(CommitmentLevel::Confirmed),
-                        max_retries: Some(2),
-                        ..RpcSendTransactionConfig::default()
-                    },
-                )
-                .await
-            {
-                Ok(_) => {
-                    check_signatures.insert(*signature);
-                }
-                Err(e) => match e.get_transaction_error() {
-                    Some(TransactionError::BlockhashNotFound) => {
-                        is_blockhash_not_found = true;
-                        break;
-                    }
-                    Some(TransactionError::AlreadyProcessed) => {
-                        already_processed.insert(*tx.get_signature());
-                    }
-                    Some(e) => {
-                        warn!(
-                            "TransactionError sending signature: {} error: {:?} tx: {:?}",
-                            tx.get_signature(),
-                            e,
-                            tx
-                        );
-                    }
-                    None => {
-                        warn!(
-                            "Unknown error sending transaction signature: {} error: {:?}",
-                            tx.get_signature(),
-                            e
-                        );
-                    }
-                },
-            }
-        }
-
-        sleep(Duration::from_secs(10)).await;
-
-        let signatures: Vec<Signature> = check_signatures.iter().cloned().collect();
-        let statuses = get_batched_signatures_statuses(rpc_client, &signatures).await?;
-
-        for (signature, maybe_status) in &statuses {
-            if let Some(_status) = maybe_status {
-                claim_transactions.remove(signature);
-                check_signatures.remove(signature);
-            }
-        }
-
-        for signature in already_processed {
-            claim_transactions.remove(&signature);
-        }
-
-        if claim_transactions.is_empty() || is_blockhash_not_found {
-            break;
-        }
-    }
-
-    let num_landed = txs_requesting_send
-        .checked_sub(claim_transactions.len())
-        .unwrap();
-    info!("num_landed: {:?}", num_landed);
-
-    Ok(())
-}
-
-pub async fn get_batched_signatures_statuses(
-    rpc_client: &RpcClient,
-    signatures: &[Signature],
-) -> solana_rpc_client_api::client_error::Result<Vec<(Signature, Option<TransactionStatus>)>> {
-    let mut signature_statuses = Vec::new();
-
-    for signatures_batch in signatures.chunks(100) {
-        // was using get_signature_statuses_with_history, but it blocks if the signatures don't exist
-        // bigtable calls to read signatures that don't exist block forever w/o --rpc-bigtable-timeout argument set
-        // get_signature_statuses looks in status_cache, which only has a 150 block history
-        // may have false negative, but for this workflow it doesn't matter
-        let statuses = rpc_client.get_signature_statuses(signatures_batch).await?;
-        signature_statuses.extend(signatures_batch.iter().cloned().zip(statuses.value));
-    }
-    Ok(signature_statuses)
-}
-
 /// Just in time sign and send transaction to RPC
 async fn signed_send(
     signer: &Keypair,
@@ -518,19 +295,6 @@ async fn signed_send(
     };
 
     (txn, res)
-}
-
-async fn get_batched_accounts(
-    rpc_client: &RpcClient,
-    pubkeys: &[Pubkey],
-) -> solana_rpc_client_api::client_error::Result<HashMap<Pubkey, Option<Account>>> {
-    let mut batched_accounts = HashMap::new();
-
-    for pubkeys_chunk in pubkeys.chunks(MAX_MULTIPLE_ACCOUNTS) {
-        let accounts = rpc_client.get_multiple_accounts(pubkeys_chunk).await?;
-        batched_accounts.extend(pubkeys_chunk.iter().cloned().zip(accounts));
-    }
-    Ok(batched_accounts)
 }
 
 /// Calculates the minimum balance needed to be rent-exempt

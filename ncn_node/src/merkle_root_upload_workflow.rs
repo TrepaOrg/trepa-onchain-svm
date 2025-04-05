@@ -3,11 +3,8 @@ use {
         read_json_from_file, sign_and_send_transactions_with_retries, GeneratedMerkleTree,
         GeneratedMerkleTreeCollection,
     },
+    crate::upload_merkle_root::{upload_merkle_root_ix, UploadMerkleRootAccounts},
     anchor_lang::AccountDeserialize,
-    jito_tip_distribution::{
-        sdk::instruction::{upload_merkle_root_ix, UploadMerkleRootAccounts, UploadMerkleRootArgs},
-        state::{Config, TipDistributionAccount},
-    },
     log::{error, info},
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_program::{
@@ -22,6 +19,8 @@ use {
     std::{path::PathBuf, time::Duration},
     thiserror::Error,
     tokio::runtime::Builder,
+    spl_associated_token_account::get_associated_token_address,
+    crate::constants::WSOL_MINT_PUBKEY,
 };
 
 #[derive(Error, Debug)]
@@ -38,6 +37,7 @@ pub fn upload_merkle_root(
     keypair_path: &PathBuf,
     rpc_url: &str,
     program_id: &Pubkey,
+    pool_id: [u8; 16],
     max_concurrent_rpc_get_reqs: usize,
     txn_send_batch_size: usize,
 ) -> Result<(), MerkleRootUploadError> {
@@ -47,8 +47,10 @@ pub fn upload_merkle_root(
         read_json_from_file(merkle_root_path).expect("read GeneratedMerkleTreeCollection");
     let keypair = read_keypair_file(keypair_path).expect("read keypair file");
 
-    let tip_distribution_config =
-        Pubkey::find_program_address(&[Config::SEED], tip_distribution_program_id).0;
+    let program_config =
+            Pubkey::find_program_address(&[b"config"], program_id).0;
+
+    let pool_pda = Pubkey::find_program_address(&[b"pool", &pool_id[..]], program_id).0;
 
     let runtime = Builder::new_multi_thread()
         .worker_threads(16)
@@ -103,20 +105,24 @@ pub fn upload_merkle_root(
 
         info!("num trees need uploading: {:?}", trees_needing_update.len());
 
+        // prepare accounts for the transactions
+
+        let pool_token_account = get_associated_token_address(pool_pda, &*WSOL_MINT_PUBKEY);
+        let treasury_token_account = *TREASURY_TOKEN_ACCOUNT_PUBKEY;
+        let config = *CONFIG_ACCOUNT_PUBKEY;
+        let wsol_mint = *WSOL_MINT_PUBKEY;
+        let token_program = *TOKEN_PROGRAM_PUBKEY;
+
         let transactions: Vec<Transaction> = trees_needing_update
             .iter()
             .map(|tree| {
                 let ix = upload_merkle_root_ix(
-                    *prediction_program_id,
-                    UploadMerkleRootArgs {
-                        root: tree.merkle_root.to_bytes(),
-                        max_total_claim: tree.max_total_claim,
-                        max_num_nodes: tree.max_num_nodes,
-                    },
+                    *program_id,
+                    root: tree.merkle_root.to_bytes(),
                     UploadMerkleRootAccounts {
-                        config: prediction__config,
                         merkle_root_upload_authority: keypair.pubkey(),
-                        pool_account: tree.pool_pda,
+                        pool_account: pool_pda,
+                        pool_token_account: pool_token_account,
                     },
                 );
                 Transaction::new_with_payer(
