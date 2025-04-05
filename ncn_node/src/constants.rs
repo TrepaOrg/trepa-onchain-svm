@@ -15,7 +15,7 @@ pub const TOKEN_PROGRAM: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 pub const PREDICTION_PROGRAM: &str = "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e";
 
 // Programm config account
-pub const CONFIG_ACCOUNT: &str = "";
+pub const CONFIG_ACCOUNT: &str = "3yeLMnWJV2DWrxti95dfzr2umXn2nS4FUgfdoKpXkvaQ";
 
 /// Parsed Treasury Token Account as a Pubkey.
 pub static TREASURY_TOKEN_ACCOUNT_PUBKEY: Lazy<Pubkey> = Lazy::new(|| {
