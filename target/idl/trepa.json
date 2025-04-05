@@ -510,5 +510,8 @@
       "name": "PoolNotBeingResolved",
       "msg": "Pool not being resolved"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e"
+  }
 }
