@@ -81,7 +81,7 @@ impl GeneratedMerkleTree {
                 }
 
                 Some(Ok(GeneratedMerkleTree {
-                    max_num_nodes,
+                    pool_pda: prize_collection.pool_pda,
                     merkle_root_upload_authority: prize_collection.merkle_root_upload_authority,
                     merkle_root: *merkle_tree.get_root().unwrap(),
                     tree_nodes,
@@ -89,9 +89,7 @@ impl GeneratedMerkleTree {
             })
             .collect::<Result<Vec<GeneratedMerkleTree>, MerkleRootGeneratorError>>()?;
 
-        Ok(GeneratedMerkleTree {
-            generated_merkle_tree,
-        })
+        Ok(generated_merkle_tree)
     }
 }
 
@@ -164,8 +162,8 @@ pub struct PrizeMeta {
 
 impl Ord for PrizeMeta {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.predictor_pubkey
-            .cmp(&other.predictor_pubkey)
+        self.predictor
+            .cmp(&other.predictor)
     }
 }
 

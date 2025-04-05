@@ -27,7 +27,6 @@ pub fn upload_merkle_root_ix(
     root: [u8; 32],
     accounts: ProveResolutionAccounts,
 ) -> Instruction {
-    let program_id = PREDICTION_PROGRAM_PUBKEY.load();
 
     let account_metas = ProveResolutionAccounts {
         merkle_root_upload_authority,

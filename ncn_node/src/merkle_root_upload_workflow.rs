@@ -1,9 +1,8 @@
 use {
     crate::{
         read_json_from_file, sign_and_send_transactions_with_retries, GeneratedMerkleTree,
-        GeneratedMerkleTreeCollection,
     },
-    crate::upload_merkle_root::{upload_merkle_root_ix, UploadMerkleRootAccounts},
+    crate::upload_merkle_root_ix::{upload_merkle_root_ix, UploadMerkleRootAccounts},
     anchor_lang::AccountDeserialize,
     log::{error, info},
     solana_client::nonblocking::rpc_client::RpcClient,
@@ -43,7 +42,7 @@ pub fn upload_merkle_root(
 ) -> Result<(), MerkleRootUploadError> {
     const MAX_RETRY_DURATION: Duration = Duration::from_secs(600);
 
-    let merkle_tree: GeneratedMerkleTreeCollection =
+    let merkle_tree: Vec<GeneratedMerkleTree> =
         read_json_from_file(merkle_root_path).expect("read GeneratedMerkleTreeCollection");
     let keypair = read_keypair_file(keypair_path).expect("read keypair file");
 
@@ -92,7 +91,7 @@ pub fn upload_merkle_root(
                     .expect("failed to deserialize pool_account state");
 
             let needs_upload = match fetched_pool_account.is_being_resolved {
-                Some(!is_being_resolved) => {
+                Some(is_being_resolved) => {
                     is_being_resolved == true
                 }
                 None => false,
@@ -118,7 +117,7 @@ pub fn upload_merkle_root(
             .map(|tree| {
                 let ix = upload_merkle_root_ix(
                     *program_id,
-                    root: tree.merkle_root.to_bytes(),
+                    tree.merkle_root.to_bytes(),
                     UploadMerkleRootAccounts {
                         merkle_root_upload_authority: keypair.pubkey(),
                         pool_account: pool_pda,
