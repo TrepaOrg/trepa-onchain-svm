@@ -19,8 +19,11 @@ pub struct PoolAccount {
     pub question: [u8; 16],         // The prediction question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends
     pub total_stake: u64,           // Total tokens staked
-    pub is_finalized: bool,         // Whether the spark has been finalized
+    pub is_being_resolved: bool,    // Whether the pool is being resolved
+    pub is_finalized: bool,         // Whether the pool has been finalized and proved
     pub bump: u8,                   // PDA bump
+    pub proof: i64,                 // Proof of the pool resolution (root)
+    pub prize_sum: u64,             // Sum of the prizes
 }
 
 #[account]
@@ -156,6 +159,29 @@ pub struct ResolvePool<'info> {
         constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
     )]
     pub pool_token_account: Account<'info, TokenAccount>,   
+
+    pub wsol_mint: Account<'info, token::Mint>,
+    
+    pub system_program: Program<'info, System>,
+}   
+
+#[derive(Accounts)]
+pub struct ProveResolution<'info> {
+    #[account(mut)]
+    pub admin: Signer<'info>,
+    
+    #[account(
+        mut,
+        constraint = pool.is_being_resolved @ ContextError::PoolNotBeingResolved
+    )]
+    pub pool: Account<'info, PoolAccount>,  
+
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,   
     
     #[account(
         mut,
@@ -163,14 +189,14 @@ pub struct ResolvePool<'info> {
         constraint = treasury_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
     )]
     pub treasury_token_account: Account<'info, TokenAccount>,
-
+    
     pub config: Account<'info, ConfigAccount>,
 
     pub wsol_mint: Account<'info, token::Mint>,
-    
+
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-}   
+}
 
 #[derive(Accounts)]
 pub struct ClaimRewards<'info> {
@@ -240,4 +266,7 @@ pub enum ContextError {
 
     #[msg("Pool not finalized")]
     PoolNotFinalized,
+
+    #[msg("Pool not being resolved")]
+    PoolNotBeingResolved,
 }
