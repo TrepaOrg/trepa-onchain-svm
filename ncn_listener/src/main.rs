@@ -3,7 +3,7 @@ pub mod constants;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::{
-    EncodedTransaction, UiMessage, UiTransactionEncoding,
+    EncodedTransaction, UiMessage, UiTransactionEncoding, option_serializer::OptionSerializer,
 };
 use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
 use chrono::{DateTime, Utc};
@@ -54,10 +54,12 @@ async fn main() -> Result<()> {
                 continue;
             }
 
-            if let EncodedTransaction::Json(tx_json) = tx.transaction.transaction {
-                if let UiMessage::Parsed(msg) = tx_json.message {
-                    for instr in msg.instructions {
-                        println!("Detected event: {:?}", instr);
+            if let Some(meta) = &tx.transaction.meta {
+                println!("log transaction: {:?}", &tx.transaction.meta);
+
+                if let OptionSerializer::Some(logs) = &meta.log_messages {
+                    if logs.iter().any(|log| log.contains("Instruction: ResolvePool")) {
+                        println!("Detected event: {:?}", logs);
                     }
                 }
             }
