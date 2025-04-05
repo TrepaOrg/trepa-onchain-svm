@@ -1,7 +1,7 @@
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::{
-    EncodedTransaction, UiInstruction, UiMessage, UiTransactionEncoding,
+    EncodedTransaction, UiMessage, UiTransactionEncoding,
 };
 use solana_client::rpc_client::GetConfirmedSignaturesForAddress2Config;
 use chrono::{DateTime, Utc};
@@ -9,17 +9,17 @@ use chrono::{DateTime, Utc};
 use anyhow::Result;
 use tokio::time::{sleep, Duration};
 
-const RPC_URL: &str = "https://api.testnet.sonic.game";
-const MONITORED_WALLET: &str = "WALLET_ADDRESS";
+const RPC_URL: &str = "https://api.devnet.solana.com";
+const PUBLIC_KEY: &str = "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e";
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let client = RpcClient::new_with_commitment(RPC_URL.to_string(), CommitmentConfig::confirmed());
-    let monitored_pubkey: Pubkey = MONITORED_WALLET.parse()?;
+    let monitored_pubkey: Pubkey = PUBLIC_KEY.parse()?;
     let mut last_signature = None;
     let mut last_processed_time: Option<DateTime<Utc>> = Some(Utc::now());
 
-    println!("Listening for SPL token transfers from {}", MONITORED_WALLET);
+    println!("Listening for events from {}", PUBLIC_KEY);
 
     loop {
         let sigs = client
@@ -58,9 +58,7 @@ async fn main() -> Result<()> {
             if let EncodedTransaction::Json(tx_json) = tx.transaction.transaction {
                 if let UiMessage::Parsed(msg) = tx_json.message {
                     for instr in msg.instructions {
-                        if let UiInstruction::Parsed(_) = instr {
-                            println!("Detected SPL token transfer: {}", tx_sig);
-                        }
+                        println!("Detected event: {:?}", instr);
                     }
                 }
             }
