@@ -166,7 +166,7 @@ pub struct ResolvePool<'info> {
 #[derive(Accounts)]
 pub struct ProveResolution<'info> {
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub merkle_root_upload_authority: Signer<'info>,
     
     #[account(
         mut,
