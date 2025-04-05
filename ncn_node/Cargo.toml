@@ -10,7 +10,9 @@ publish = false
 
 [dependencies]
 anchor-lang = "0.27.0"
+anyhow = "1.0.97"
 borsh = "0.9.3"
+chrono = "0.4.40"
 clap = { version = "4.1.11", features = ["derive", "env"] }
 dotenv = "0.15.0"
 env_logger = "0.9.3"
@@ -27,6 +29,7 @@ solana-merkle-tree = "2.2.6"
 solana-program = "2.2.1"
 solana-rpc-client-api = "2.2.6"
 solana-sdk = "2.2.2"
+solana-transaction-status = "2.2.6"
 spl-associated-token-account = "6.0.0"
 thiserror = "1.0.38"
 tokio = { version = "1.18.2", features = ["sync", "time"] }
