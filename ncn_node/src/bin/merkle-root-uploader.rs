@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
            pool_id_array,
            args.max_concurrent_rpc_get_reqs,
            args.txn_send_batch_size,
-        ) {
+        ).await {
             panic!("failed to upload merkle roots: {:?}", error);
         }
         info!("Uploaded merkle roots from file {:?}. Waiting for next event...", args.merkle_root_path);
@@ -102,7 +102,6 @@ async fn main() -> Result<()> {
 
 /// Waits for a transaction event with a log containing "Instruction: ResolvePool"
 async fn wait_for_event(rpc_client: &RpcClient, monitored_pubkey: Pubkey) -> Result<()> {
-    // Variables to keep track of what we have already seen.
     let mut last_signature: Option<Signature> = None;
     let mut last_processed_time: Option<DateTime<Utc>> = Some(Utc::now());
 
@@ -128,7 +127,6 @@ async fn wait_for_event(rpc_client: &RpcClient, monitored_pubkey: Pubkey) -> Res
                     continue;
                 }
 
-                // fetch the transaction details.
                 let tx_result = rpc_client
                     .get_transaction(&tx_signature, UiTransactionEncoding::JsonParsed)
                     .await;
@@ -138,10 +136,14 @@ async fn wait_for_event(rpc_client: &RpcClient, monitored_pubkey: Pubkey) -> Res
                 }
 
                 let transaction = tx_result.unwrap();
+
                 if let Some(transaction_meta) = transaction.transaction.meta {
                     if let OptionSerializer::Some(logs) = transaction_meta.log_messages {
                         if logs.iter().any(|log| log.contains("Instruction: ResolvePool")) {
-                            println!("Detected event from transaction {}: {:?}", tx_signature, logs);
+                            println!(
+                                "Detected event from transaction {}: {:?}",
+                                tx_signature, logs
+                            );
                             return Ok(());
                         }
                     }
