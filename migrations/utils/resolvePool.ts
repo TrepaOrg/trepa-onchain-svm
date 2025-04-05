@@ -1,6 +1,10 @@
 import { BN, Program } from "@project-serum/anchor";
-import { LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+
+// WSOL mint address (same on all networks)
+const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 
 /**
  * Resolves a pool with the given question and prediction end time.
@@ -26,10 +30,9 @@ export async function resolvePool(
         [Buffer.from("pool"), poolBytes],
         program.programId
     );
-    console.log("Pool PDA:", poolPDA.toBase58());
     
     // Get the PDA for the predictions
-    const predictionPDA = predictors.map(predictor => {
+    const predictionPDAs = predictors.map(predictor => {
         const [predictionPDA] = PublicKey.findProgramAddressSync(
             [Buffer.from("prediction"), poolPDA.toBuffer(), predictor.toBuffer()],
             program.programId
@@ -40,21 +43,29 @@ export async function resolvePool(
             isSigner: false,
         }
     });
+    
+    const poolTokenAccount = await getAssociatedTokenAddress(
+        WSOL_MINT,
+        poolPDA,
+        true // allowOwnerOffCurve = true for PDAs
+    );
 
     const prizeAmounts = prizes.map(prize => new BN(prize * LAMPORTS_PER_SOL)); // 0.001 SOL
 
-    if (prizeAmounts.length !== predictionPDA.length) {
+    if (prizeAmounts.length !== predictionPDAs.length) {
         throw new Error("Mismatched prize count");
     }
 
     // Resolve the pool
     const tx = await program.methods
-        .resolvePool(prizeAmounts)
+        .resolvePool(prizeAmounts, new BN(0))
         .accounts({
             pool: poolPDA,
-            admin
+            admin,
+            poolTokenAccount: poolTokenAccount,
+            wsolMint: WSOL_MINT,
         })
-        .remainingAccounts(predictionPDA)
+        .remainingAccounts(predictionPDAs)
         .transaction();
 
     console.log(`Transaction created! ${tx}`);

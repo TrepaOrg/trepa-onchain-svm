@@ -1,14 +1,21 @@
 import { BN, Program } from "@project-serum/anchor";
 import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
+import { 
+    TOKEN_PROGRAM_ID, 
+    getAssociatedTokenAddress, 
+    createAssociatedTokenAccountInstruction,
+    createCloseAccountInstruction
+} from "@solana/spl-token";
+
+// WSOL mint address (same on all networks)
+const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 
 /**
- * Creates a new prediction.
+ * Claims rewards for a prediction.
  * @param program - The program instance.
- * @param wallet - The wallet instance.
- * @param poolId - The pool to be predicted. (16 bytes uuid)
- * @param prediction - The prediction to be made.
- * @param stake - The stake to be made.
+ * @param wallet - The wallet instance of the user.
+ * @param poolId - The pool ID. (16 bytes uuid)
  */
 export async function claimReward(
     program: Program<Trepa>, 
@@ -34,17 +41,66 @@ export async function claimReward(
     );
     console.log("Prediction PDA:", predictionPDA.toBase58());
 
-    // Create the prediction
-    const tx = await program.methods
-        .claimRewards()
-        .accounts({
-            prediction: predictionPDA,
-            pool: poolPDA,
-            predictor: wallet,
-            systemProgram: SystemProgram.programId,
-        })
-        .transaction();
+    // Get associated token accounts for WSOL
+    const predictorTokenAccount = await getAssociatedTokenAddress(
+        WSOL_MINT,
+        wallet
+    );
+    
+    const poolTokenAccount = await getAssociatedTokenAddress(
+        WSOL_MINT,
+        poolPDA,
+        true // allowOwnerOffCurve = true for PDAs
+    );
+    if (!poolTokenAccount) {
+        throw new Error("Pool token account not found");
+    }
 
-    console.log(`Transaction created! ${tx}`);
+    // Create the transaction
+    const tx = new Transaction();
+    
+    // Check if the predictor token account exists and create it if needed
+    try {
+        await program.provider.connection.getAccountInfo(predictorTokenAccount);
+        console.log("Predictor token account exists");
+    } catch (thrownObject) {
+        console.log("Creating predictor token account");
+        tx.add(
+            createAssociatedTokenAccountInstruction(
+                wallet,
+                predictorTokenAccount,
+                wallet,
+                WSOL_MINT
+            )
+        );
+    }
+
+    // Add the claim rewards instruction
+    tx.add(
+        await program.methods
+            .claimRewards()
+            .accounts({
+                prediction: predictionPDA,
+                pool: poolPDA,
+                predictor: wallet,
+                predictorTokenAccount: predictorTokenAccount,
+                poolTokenAccount: poolTokenAccount,
+                wsolMint: WSOL_MINT,
+                tokenProgram: TOKEN_PROGRAM_ID,
+            })
+            .instruction()
+    );
+
+    // close the predictor's WSOL token account so that its SOL is unwrapped
+    tx.add(
+        createCloseAccountInstruction(
+            predictorTokenAccount,
+            wallet,
+            wallet,
+            []
+        )
+    );
+
+    console.log(`Transaction created!`);
     return tx;
 }

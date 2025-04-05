@@ -7,13 +7,9 @@ pub mod context;
 pub use context::*;
 
 use anchor_lang::prelude::*;
-use anchor_lang::system_program;
-// use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-// use std::collections::BTreeMap;
+use anchor_spl::token::{self, Transfer};
 
-//pub use context::*;
-
-declare_id!("4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU");
+declare_id!("55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e");
 
 #[program]
 pub mod trepa {
@@ -31,7 +27,7 @@ pub mod trepa {
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
 
-        config.authority = ctx.accounts.authority.key();
+        config.admin = ctx.accounts.admin.key();
         config.min_stake = min_stake;
         config.max_stake = max_stake;
         config.max_roi = max_roi;
@@ -44,8 +40,8 @@ pub mod trepa {
     }
 
     /// Updates the platform parameters
-    pub fn update_parameters(
-        ctx: Context<UpdateParameters>,
+    pub fn update_config(
+        ctx: Context<UpdateConfig>,
         min_stake: u64,
         max_stake: u64,
         max_roi: u64,
@@ -77,13 +73,15 @@ pub mod trepa {
         pool.total_stake = 0;
         pool.is_finalized = false;
         pool.bump = ctx.bumps.pool;
+        pool.prize_sum = 0;
+        pool.is_being_resolved = false;
+        pool.proof = 1;
 
         msg!("Pool created: {}", pool.key());
         Ok(())
     }
 
     /// Predicts the outcome of a pool
-    // TODO: add handler for adding stake  
     pub fn predict(
         ctx: Context<Predict>,
         pred: u8,
@@ -98,39 +96,45 @@ pub mod trepa {
         prediction.prize = 0;
         prediction.is_claimed = false;
         prediction.bump = ctx.bumps.prediction;
+        prediction.predictor = ctx.accounts.predictor.key();
 
-        // Transfer SOL from the predictor to the pool accoun
+        // Transfer WSOL from the predictor's token account to the pool's token account
         let cpi_ctx = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            system_program::Transfer {
-                from: ctx.accounts.predictor.to_account_info(),
-                to: ctx.accounts.pool.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.predictor_token_account.to_account_info(),
+                to: ctx.accounts.pool_token_account.to_account_info(),
+                authority: ctx.accounts.predictor.to_account_info(),
             },
         );
-        system_program::transfer(cpi_ctx, stake)?;
+        token::transfer(cpi_ctx, stake)?;
 
         msg!("Prediction made: {} with stake {}", prediction.key(), stake);
         Ok(())
     }     
 
-    /// Finalizes a pool
+    /// Start a pool resolution
     pub fn resolve_pool(
         ctx: Context<ResolvePool>,
         prize_amounts: Vec<u64>,
+        proof: i64
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
 
         // Check if the pool is not ended 
         // TODO: enable this
         // let current_timestamp = Clock::get()?.unix_timestamp;
-        // if current_timestamp < pool.prediction_end_time {
-        //     return Err(CustomError::PredictionNotEnded.into());
-        // }
+        // require!(
+        //     current_timestamp >= pool.prediction_end_time,
+        //     CustomError::PredictionNotEnded
+        // );
 
-        // Check if the pool is already finalized
-        if pool.is_finalized {
-            return Err(CustomError::PoolAlreadyFinalized.into());
-        }
+        require!(
+            !pool.is_being_resolved,
+            CustomError::PoolAlreadyBeingResolved
+        );
+        pool.is_being_resolved = true;
+        pool.proof = proof;
 
         // Get the dynamically passed accounts
         let remaining_accounts = &ctx.remaining_accounts;
@@ -139,6 +143,7 @@ pub mod trepa {
             CustomError::MismatchedPrizeCount
         );
 
+        let mut prize_sum = 0;
         // Process each prediction account dynamically
         for (index, account_info) in remaining_accounts.iter().cloned().enumerate() {
             let mut prediction_acc: PredictionAccount = PredictionAccount::try_deserialize(
@@ -153,43 +158,90 @@ pub mod trepa {
             prediction_acc.prize = prize_amounts[index];
             //msg!("Updated prize for prediction: {}", prediction_account.prize);
             prediction_acc.try_serialize(&mut &mut account_info.data.borrow_mut()[..])?;
+
+            prize_sum += prediction_acc.prize;
         }
 
-        msg!("Pool {} resolved", pool.key());
+        // Get balance from the pool's token account.
+        let balance = ctx.accounts.pool_token_account.amount;
+        
+        require!(
+            balance >= prize_sum, 
+            CustomError::InsufficientFunds
+        );
 
-        pool.is_finalized = true;
+        pool.prize_sum = prize_sum;
+        
         Ok(())
     }     
+
+    /// Prove and Finalize a pool
+    pub fn prove_resolution(
+        ctx: Context<ProveResolution>,
+        proof: i64,
+    ) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+
+        require!(
+            pool.proof == proof,
+            CustomError::ProofsDoNotMatch
+        );
+
+        pool.is_finalized = true;
+
+        // Since pool is a PDA, create its signer seeds for CPI.
+        let pool_seeds: &[&[u8]] = &[
+            &b"pool"[..],
+            &pool.question[..],
+            &[pool.bump],
+        ];
+        let signer_seeds = &[&pool_seeds[..]];
+        // Transfer the remaining balance (balance - prize_sum) from pool token account to treasury token account.
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.pool_token_account.to_account_info(),
+                to: ctx.accounts.treasury_token_account.to_account_info(),
+                authority: pool.to_account_info(),
+            },
+            signer_seeds,
+        );
+
+        // Get balance from the pool's token account.
+        let balance = ctx.accounts.pool_token_account.amount;
+        token::transfer(cpi_ctx, balance - pool.prize_sum)?;
+        
+        msg!("Pool resolution proved, pool {} resolved with prize sum {}", pool.key(), pool.prize_sum);
+        Ok(())
+    }   
 
     pub fn claim_rewards(
         ctx: Context<ClaimRewards>,
     ) -> Result<()> {
         let prediction = &mut ctx.accounts.prediction;
-        // let pool = &mut ctx.accounts.pool;
-        // let predictor = &ctx.accounts.predictor;
-        // let system_program = &ctx.accounts.system_program;
         
         let prize = prediction.prize;
         prediction.prize = 0;
         prediction.is_claimed = true;
         
-        // // Store the temporary array in a variable to extend its lifetime.
-        // let bump_seed: &[u8] = &[pool.bump];
-        // let pool_seeds: &[&[u8]] = &[b"pool", &pool.question, bump_seed];
-        // let signer_seeds: &[&[&[u8]]] = &[pool_seeds];
+        // Transfer WSOL from the pool's token account to the predictor's token account
+        let pool_seeds: &[&[u8]] = &[
+            &b"pool"[..],
+            &ctx.accounts.pool.question[..],
+            &[ctx.accounts.pool.bump]
+        ];
+        let signer_seeds = &[&pool_seeds[..]];
         
-        // let cpi_context = CpiContext::new_with_signer(
-        //     system_program.to_account_info(),
-        //     system_program::Transfer {
-        //         from: pool.to_account_info(),
-        //         to: predictor.to_account_info(),
-        //     },
-        //     signer_seeds,
-        // );
-        
-        // system_program::transfer(cpi_context, prize)?;
-        ctx.accounts.pool.sub_lamports(prize)?;
-        ctx.accounts.predictor.add_lamports(prize)?;
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.pool_token_account.to_account_info(),
+                to: ctx.accounts.predictor_token_account.to_account_info(),
+                authority: ctx.accounts.pool.to_account_info(),
+            },
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, prize)?;
 
         msg!("Reward claimed: {} for prediction {}", prize, prediction.key());
         Ok(())
@@ -198,21 +250,21 @@ pub mod trepa {
 
 #[error_code]
 pub enum CustomError {
-    #[msg("Config account already exists.")]
-    ConfigAlreadyExists,
-
-    #[msg("Question string is too long. Maximum allowed is 16 bytes.")]
-    QuestionTooLong,
-
     #[msg("Prediction not ended")]
     PredictionNotEnded,
-
-    #[msg("Pool already finalized")]
-    PoolAlreadyFinalized,
 
     #[msg("Invalid pool")]
     InvalidPool,
 
     #[msg("Mismatched prize count")]
     MismatchedPrizeCount,   
+
+    #[msg("Insufficient funds")]
+    InsufficientFunds,
+
+    #[msg("Proofs do not match")]
+    ProofsDoNotMatch,
+
+    #[msg("Pool already being resolved")]
+    PoolAlreadyBeingResolved,
 }

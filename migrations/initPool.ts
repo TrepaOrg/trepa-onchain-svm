@@ -1,6 +1,7 @@
 import * as anchor from "@project-serum/anchor";
 import { Trepa } from "../target/types/trepa";
 import { createPool } from "./utils/createPool";
+import { POOL_ID } from "./constants";
 
 async function main() {
   // Set up the provider and program
@@ -15,7 +16,7 @@ async function main() {
   console.log(`📜 Program loaded with ID: ${program.programId.toBase58()}`);
 
 
-  const poolId = "b9cdc74e-c59a-4dbc-8006-c3e326040816"; // 16 bytes uuid
+  const poolId = POOL_ID; // 16 bytes uuid
   // Calculate prediction end time one year later (in seconds)
   const predictionEndTime = Math.floor(Date.now() / 1000) + 31536000;
   // Prepare transaction to initialize the Config account
@@ -33,7 +34,7 @@ async function main() {
 }
 
 main()
-  .then(() => console.log("Initialization successful"))
+  .then(() => console.log("Pool created successfully"))
   .catch((err) => {
-    console.error("Error initializing:", err);
+    console.error("Error creating pool:", err);
   });

@@ -1,10 +1,11 @@
 // ===== ACCOUNT STRUCTURES =====
 
 use anchor_lang::prelude::*;
+use anchor_spl::token::{ self, Token, TokenAccount };
 
 #[account]
 pub struct ConfigAccount {
-    pub authority: Pubkey,        // Admin authority
+    pub admin: Pubkey,        // Admin authority
     pub min_stake: u64,           // Minimum stake amount
     pub max_stake: u64,           // Maximum stake amount
     pub max_roi: u64,             // Maximum ROI in basis points (e.g., 10000 = 100%)
@@ -15,16 +16,19 @@ pub struct ConfigAccount {
 
 #[account]
 pub struct PoolAccount {
-    pub question: [u8; 16],           // The prediction question (identifier) always 16 bytes
+    pub question: [u8; 16],         // The prediction question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends
     pub total_stake: u64,           // Total tokens staked
-    pub is_finalized: bool,         // Whether the spark has been finalized
+    pub is_being_resolved: bool,    // Whether the pool is being resolved
+    pub is_finalized: bool,         // Whether the pool has been finalized and proved
     pub bump: u8,                   // PDA bump
+    pub proof: i64,                 // Proof of the pool resolution (root)
+    pub prize_sum: u64,             // Sum of the prizes
 }
 
 #[account]
 pub struct PredictionAccount {
-    //pub predictor: Pubkey,          // Predictor's public key
+    pub predictor: Pubkey,          // Predictor's public key
     pub pool: Pubkey,               // Associated spark/pool
     pub prediction_value: u8,       // Predicted "Yes" percentage (0-100)
     //pub stake_amount: u64,          // Amount staked needed for spl tokens
@@ -38,11 +42,11 @@ pub struct PredictionAccount {
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
+    pub admin: Signer<'info>,
     
     #[account(
         init,
-        payer = authority,
+        payer = admin,
         space = 8 + std::mem::size_of::<ConfigAccount>(),
         seeds = [b"config"],
         bump
@@ -56,15 +60,15 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdateParameters<'info> {
+pub struct UpdateConfig<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
+        pub admin: Signer<'info>,
     
     #[account(
         mut,
         seeds = [b"config"],
         bump = config.bump,
-        constraint = config.authority == authority.key() @ ContextError::Unauthorized
+        constraint = config.admin == admin.key() @ ContextError::Unauthorized
     )]
     pub config: Account<'info, ConfigAccount>,
 }
@@ -72,7 +76,10 @@ pub struct UpdateParameters<'info> {
 #[derive(Accounts)]
 #[instruction(question: [u8; 16], prediction_end_time: i64)]
 pub struct CreatePool<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        //constraint = admin.key() == config.admin @ ContextError::Unauthorized
+    )]
     pub admin: Signer<'info>,
 
     #[account(
@@ -84,6 +91,8 @@ pub struct CreatePool<'info> {
         constraint = prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
+
+    //pub config: Account<'info, ConfigAccount>,
     
     pub system_program: Program<'info, System>,
     pub clock: Sysvar<'info, Clock>,
@@ -100,25 +109,42 @@ pub struct Predict<'info> {
     )]
     pub pool: Account<'info, PoolAccount>,
     
+    // todo do we need it (for claiming - yes)
     #[account(
         init,
         payer = predictor,
         space = 8 + std::mem::size_of::<PredictionAccount>(),
-        seeds = [b"prediction", pool.key().as_ref(), predictor.key().as_ref()],
+        seeds = [b"prediction", pool.key().as_ref(), predictor.key().as_ref()], // todo change to Uuid
         bump
     )]
     pub prediction: Account<'info, PredictionAccount>,
     
-    // for spl tokens
-    // #[account(mut)]
-    // pub predictor_token_account: Account<'info, TokenAccount>,
-
+    #[account(
+        mut,
+        constraint = predictor_token_account.owner == predictor.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = predictor_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub predictor_token_account: Account<'info, TokenAccount>,
+    
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,
+    
+    pub wsol_mint: Account<'info, token::Mint>,
+    
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
 pub struct ResolvePool<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        //constraint = admin.key() == config.admin @ ContextError::Unauthorized
+    )]
     pub admin: Signer<'info>,
     
     #[account(
@@ -126,7 +152,48 @@ pub struct ResolvePool<'info> {
         constraint = !pool.is_finalized @ ContextError::PoolAlreadyFinalized
     )]
     pub pool: Account<'info, PoolAccount>,
+
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,   
+
+    pub wsol_mint: Account<'info, token::Mint>,
 }   
+
+#[derive(Accounts)]
+pub struct ProveResolution<'info> {
+    #[account(mut)]
+    pub merkle_root_upload_authority: Signer<'info>,
+    
+    #[account(
+        mut,
+        constraint = pool.is_being_resolved @ ContextError::PoolNotBeingResolved
+    )]
+    pub pool: Account<'info, PoolAccount>,  
+
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,   
+    
+    #[account(
+        mut,
+        constraint = treasury_token_account.owner == config.treasury @ ContextError::InvalidTokenAccountOwner,
+        constraint = treasury_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub treasury_token_account: Account<'info, TokenAccount>,
+    
+    pub config: Account<'info, ConfigAccount>,
+
+    pub wsol_mint: Account<'info, token::Mint>,
+
+    pub token_program: Program<'info, Token>,
+}
 
 #[derive(Accounts)]
 pub struct ClaimRewards<'info> {
@@ -135,23 +202,41 @@ pub struct ClaimRewards<'info> {
     
     #[account(
         mut,
+        close = predictor,
         constraint = prediction.pool == pool.key() @ ContextError::InvalidPool,
-        constraint = prediction.is_claimed == false @ ContextError::RewardsAlreadyClaimed
+        constraint = !prediction.is_claimed @ ContextError::RewardsAlreadyClaimed,
+        constraint = prediction.predictor == predictor.key() @ ContextError::UnauthorizedClaim
     )]
     pub prediction: Account<'info, PredictionAccount>,
 
     #[account(
         mut,
-        constraint = pool.key() == prediction.pool @ ContextError::InvalidPool
+        constraint = pool.is_finalized @ ContextError::PoolNotFinalized
     )]
     pub pool: Account<'info, PoolAccount>,
-
-    pub system_program: Program<'info, System>,
+    
+    #[account(
+        mut,
+        constraint = predictor_token_account.owner == predictor.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = predictor_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub predictor_token_account: Account<'info, TokenAccount>,
+    
+    #[account(
+        mut,
+        constraint = pool_token_account.owner == pool.key() @ ContextError::InvalidTokenAccountOwner,
+        constraint = pool_token_account.mint == wsol_mint.key() @ ContextError::InvalidMint
+    )]
+    pub pool_token_account: Account<'info, TokenAccount>,
+    
+    pub wsol_mint: Account<'info, token::Mint>,
+    
+    pub token_program: Program<'info, Token>,
 }
 
 #[error_code]
 pub enum ContextError {
-    #[msg("Unauthorized update")]
+    #[msg("Unauthorized admin action")]
     Unauthorized,
 
     #[msg("Pool already finalized")]
@@ -165,4 +250,19 @@ pub enum ContextError {
 
     #[msg("Rewards already claimed")]
     RewardsAlreadyClaimed,
+
+    #[msg("Unauthorized claim")]
+    UnauthorizedClaim,
+
+    #[msg("Invalid mint account")]
+    InvalidMint,
+
+    #[msg("Invalid pool token account owner")]
+    InvalidTokenAccountOwner,
+
+    #[msg("Pool not finalized")]
+    PoolNotFinalized,
+
+    #[msg("Pool not being resolved")]
+    PoolNotBeingResolved,
 }

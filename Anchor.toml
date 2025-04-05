@@ -7,11 +7,14 @@ skip-lint = false
 [programs."https://api.testnet.sonic.game/"]
 trepa = "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
 
+[programs."https://api.devnet.solana.com"]
+trepa = "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e"
+
 [registry]
-url = "https://api.testnet.sonic.game/"
+url = "https://api.devnet.solana.com"
 
 [provider]
-cluster = "https://api.testnet.sonic.game/"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -22,3 +25,5 @@ predict = "ts-node migrations/postPrediction.ts"
 value = "ts-node migrations/getPredictionData.ts"
 resolve = "ts-node migrations/resolvePool.ts"
 claim = "ts-node migrations/claimReward.ts"
+config = "ts-node migrations/updateConfig.ts"
+batch = "ts-node migrations/sendBatchedTransfer.ts"

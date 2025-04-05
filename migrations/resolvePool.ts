@@ -1,6 +1,7 @@
 import * as anchor from "@project-serum/anchor";
 import { Trepa } from "../target/types/trepa";
 import { resolvePool } from "./utils/resolvePool";
+import { POOL_ID } from "./constants";
 
 async function main() {
   // Set up the provider and program
@@ -15,15 +16,15 @@ async function main() {
   console.log(`📜 Program loaded with ID: ${program.programId.toBase58()}`);
 
 
-  const poolId = "b9cdc74e-c59a-4dbc-8006-c3e326040816"; // 16 bytes uuid
+  const poolId = POOL_ID; // 16 bytes uuid
   // Calculate prediction end time one year later (in seconds)
   // Prepare transaction to initialize the Config account
   const tx = await resolvePool(
     program, 
     poolId, 
     provider.wallet.publicKey, 
-    [1000000],
-    [provider.wallet.publicKey]
+    [0.001],
+    [provider.wallet.publicKey],
   );
 
   console.log("Pool PDA:", tx.instructions[0].keys[1].pubkey.toBase58());
@@ -33,7 +34,7 @@ async function main() {
 }
 
 main()
-  .then(() => console.log("Resolved pool successfully"))
+  .then(() => console.log("Pool resolved successfully"))
   .catch((err) => {
     console.error("Error resolving pool:", err);
   });

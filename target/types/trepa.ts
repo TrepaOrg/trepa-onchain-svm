@@ -9,7 +9,7 @@ export type Trepa = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -49,13 +49,13 @@ export type Trepa = {
       ]
     },
     {
-      "name": "updateParameters",
+      "name": "updateConfig",
       "docs": [
         "Updates the platform parameters"
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -149,7 +149,27 @@ export type Trepa = {
           "isSigner": false
         },
         {
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -168,7 +188,7 @@ export type Trepa = {
     {
       "name": "resolvePool",
       "docs": [
-        "Finalizes a pool"
+        "Start a pool resolution"
       ],
       "accounts": [
         {
@@ -180,6 +200,16 @@ export type Trepa = {
           "name": "pool",
           "isMut": true,
           "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -188,6 +218,59 @@ export type Trepa = {
           "type": {
             "vec": "u64"
           }
+        },
+        {
+          "name": "proof",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "proveResolution",
+      "docs": [
+        "Prove and Finalize a pool"
+      ],
+      "accounts": [
+        {
+          "name": "merkleRootUploadAuthority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "proof",
+          "type": "i64"
         }
       ]
     },
@@ -210,7 +293,22 @@ export type Trepa = {
           "isSigner": false
         },
         {
-          "name": "systemProgram",
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -225,7 +323,7 @@ export type Trepa = {
         "kind": "struct",
         "fields": [
           {
-            "name": "authority",
+            "name": "admin",
             "type": "publicKey"
           },
           {
@@ -278,12 +376,24 @@ export type Trepa = {
             "type": "u64"
           },
           {
+            "name": "isBeingResolved",
+            "type": "bool"
+          },
+          {
             "name": "isFinalized",
             "type": "bool"
           },
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "proof",
+            "type": "i64"
+          },
+          {
+            "name": "prizeSum",
+            "type": "u64"
           }
         ]
       }
@@ -293,6 +403,10 @@ export type Trepa = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "predictor",
+            "type": "publicKey"
+          },
           {
             "name": "pool",
             "type": "publicKey"
@@ -324,22 +438,22 @@ export type Trepa = {
         "kind": "enum",
         "variants": [
           {
-            "name": "ConfigAlreadyExists"
-          },
-          {
-            "name": "QuestionTooLong"
-          },
-          {
             "name": "PredictionNotEnded"
-          },
-          {
-            "name": "PoolAlreadyFinalized"
           },
           {
             "name": "InvalidPool"
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "InsufficientFunds"
+          },
+          {
+            "name": "ProofsDoNotMatch"
+          },
+          {
+            "name": "PoolAlreadyBeingResolved"
           }
         ]
       }
@@ -349,7 +463,7 @@ export type Trepa = {
     {
       "code": 6000,
       "name": "Unauthorized",
-      "msg": "Unauthorized update"
+      "msg": "Unauthorized admin action"
     },
     {
       "code": 6001,
@@ -370,6 +484,31 @@ export type Trepa = {
       "code": 6004,
       "name": "RewardsAlreadyClaimed",
       "msg": "Rewards already claimed"
+    },
+    {
+      "code": 6005,
+      "name": "UnauthorizedClaim",
+      "msg": "Unauthorized claim"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidMint",
+      "msg": "Invalid mint account"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Invalid pool token account owner"
+    },
+    {
+      "code": 6008,
+      "name": "PoolNotFinalized",
+      "msg": "Pool not finalized"
+    },
+    {
+      "code": 6009,
+      "name": "PoolNotBeingResolved",
+      "msg": "Pool not being resolved"
     }
   ]
 };
@@ -385,7 +524,7 @@ export const IDL: Trepa = {
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -425,13 +564,13 @@ export const IDL: Trepa = {
       ]
     },
     {
-      "name": "updateParameters",
+      "name": "updateConfig",
       "docs": [
         "Updates the platform parameters"
       ],
       "accounts": [
         {
-          "name": "authority",
+          "name": "admin",
           "isMut": true,
           "isSigner": true
         },
@@ -525,7 +664,27 @@ export const IDL: Trepa = {
           "isSigner": false
         },
         {
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
           "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -544,7 +703,7 @@ export const IDL: Trepa = {
     {
       "name": "resolvePool",
       "docs": [
-        "Finalizes a pool"
+        "Start a pool resolution"
       ],
       "accounts": [
         {
@@ -556,6 +715,16 @@ export const IDL: Trepa = {
           "name": "pool",
           "isMut": true,
           "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
         }
       ],
       "args": [
@@ -564,6 +733,59 @@ export const IDL: Trepa = {
           "type": {
             "vec": "u64"
           }
+        },
+        {
+          "name": "proof",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "proveResolution",
+      "docs": [
+        "Prove and Finalize a pool"
+      ],
+      "accounts": [
+        {
+          "name": "merkleRootUploadAuthority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "treasuryTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "proof",
+          "type": "i64"
         }
       ]
     },
@@ -586,7 +808,22 @@ export const IDL: Trepa = {
           "isSigner": false
         },
         {
-          "name": "systemProgram",
+          "name": "predictorTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
         }
@@ -601,7 +838,7 @@ export const IDL: Trepa = {
         "kind": "struct",
         "fields": [
           {
-            "name": "authority",
+            "name": "admin",
             "type": "publicKey"
           },
           {
@@ -654,12 +891,24 @@ export const IDL: Trepa = {
             "type": "u64"
           },
           {
+            "name": "isBeingResolved",
+            "type": "bool"
+          },
+          {
             "name": "isFinalized",
             "type": "bool"
           },
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "proof",
+            "type": "i64"
+          },
+          {
+            "name": "prizeSum",
+            "type": "u64"
           }
         ]
       }
@@ -669,6 +918,10 @@ export const IDL: Trepa = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "predictor",
+            "type": "publicKey"
+          },
           {
             "name": "pool",
             "type": "publicKey"
@@ -700,22 +953,22 @@ export const IDL: Trepa = {
         "kind": "enum",
         "variants": [
           {
-            "name": "ConfigAlreadyExists"
-          },
-          {
-            "name": "QuestionTooLong"
-          },
-          {
             "name": "PredictionNotEnded"
-          },
-          {
-            "name": "PoolAlreadyFinalized"
           },
           {
             "name": "InvalidPool"
           },
           {
             "name": "MismatchedPrizeCount"
+          },
+          {
+            "name": "InsufficientFunds"
+          },
+          {
+            "name": "ProofsDoNotMatch"
+          },
+          {
+            "name": "PoolAlreadyBeingResolved"
           }
         ]
       }
@@ -725,7 +978,7 @@ export const IDL: Trepa = {
     {
       "code": 6000,
       "name": "Unauthorized",
-      "msg": "Unauthorized update"
+      "msg": "Unauthorized admin action"
     },
     {
       "code": 6001,
@@ -746,6 +999,31 @@ export const IDL: Trepa = {
       "code": 6004,
       "name": "RewardsAlreadyClaimed",
       "msg": "Rewards already claimed"
+    },
+    {
+      "code": 6005,
+      "name": "UnauthorizedClaim",
+      "msg": "Unauthorized claim"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidMint",
+      "msg": "Invalid mint account"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidTokenAccountOwner",
+      "msg": "Invalid pool token account owner"
+    },
+    {
+      "code": 6008,
+      "name": "PoolNotFinalized",
+      "msg": "Pool not finalized"
+    },
+    {
+      "code": 6009,
+      "name": "PoolNotBeingResolved",
+      "msg": "Pool not being resolved"
     }
   ]
 };
