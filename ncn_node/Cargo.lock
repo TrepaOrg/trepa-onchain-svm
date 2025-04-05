@@ -1331,6 +1331,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "dotenv"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
 name = "ed25519"
 version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1768,6 +1774,12 @@ name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
+
+[[package]]
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "histogram"
@@ -3097,13 +3109,16 @@ dependencies = [
  "anchor-lang",
  "borsh 0.9.3",
  "clap",
+ "dotenv",
  "env_logger",
  "futures",
  "gethostname",
+ "hex",
  "log",
  "once_cell",
  "serde",
  "serde_json",
+ "sha2 0.10.8",
  "solana-client",
  "solana-merkle-tree",
  "solana-program 2.2.1",
