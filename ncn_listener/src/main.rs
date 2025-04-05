@@ -21,53 +21,55 @@ async fn main() -> Result<()> {
     println!("Listening for events from {}", constants::PUBLIC_KEY);
 
     loop {
+        let config = GetConfirmedSignaturesForAddress2Config {
+            until: last_signature.clone(),
+            ..Default::default()
+        };
+
         let sigs = client
-            .get_signatures_for_address_with_config(
-                &monitored_pubkey,
-                GetConfirmedSignaturesForAddress2Config {
-                    before: last_signature.clone(),
-                    ..Default::default()
-                },
-            )
+            .get_signatures_for_address_with_config(&monitored_pubkey, config)
             .await?;
 
         for sig_info in sigs.iter().rev() {
             let tx_sig = sig_info.signature.parse::<Signature>()?;
-            let block_time = sig_info.block_time.and_then(|t| {
-                DateTime::<Utc>::from_timestamp(t, 0)
-            });
+            
+            // Get the block time as an Option<i64> (seconds since epoch)
+            let block_time_secs_opt = sig_info.block_time;
+            if let Some(block_time_secs) = block_time_secs_opt {
+                // Convert last_processed_time (Option<DateTime<Utc>>) to seconds
+                let last_processed_secs = last_processed_time
+                    .map(|dt| dt.timestamp())
+                    .unwrap_or(0);
 
-            if block_time.is_some() && block_time <= last_processed_time {
-                continue;
-            }
+                if block_time_secs <= last_processed_secs {
+                    continue;
+                }
 
-            let tx = client
-                .get_transaction(&tx_sig, UiTransactionEncoding::JsonParsed)
-                .await;
+                let tx_result = client
+                    .get_transaction(&tx_sig, UiTransactionEncoding::JsonParsed)
+                    .await;
 
-            if tx.is_err() {
-                continue;
-            }
+                if tx_result.is_err() {
+                    continue;
+                }
 
-            let tx = tx.unwrap();
-            if tx.transaction.meta.is_none() || tx.transaction.meta.as_ref().unwrap().err.is_some() {
-                continue;
-            }
+                let tx = tx_result.unwrap();
+                if tx.transaction.meta.is_none() || tx.transaction.meta.as_ref().unwrap().err.is_some() {
+                    continue;
+                }
 
-            if let Some(meta) = &tx.transaction.meta {
-                println!("log transaction: {:?}", &tx.transaction.meta);
-
-                if let OptionSerializer::Some(logs) = &meta.log_messages {
-                    if logs.iter().any(|log| log.contains("Instruction: ResolvePool")) {
-                        println!("Detected event: {:?}", logs);
+                if let Some(meta) = &tx.transaction.meta {
+                    println!("log transaction: {:?}", meta);
+                    if let OptionSerializer::Some(logs) = &meta.log_messages {
+                        if logs.iter().any(|log| log.contains("Instruction: ResolvePool")) {
+                            println!("Detected event: {:?}", logs);
+                        }
                     }
                 }
-            }
 
-            if let Some(block_time) = block_time {
-                last_processed_time = Some(block_time);
+                last_processed_time = Some(DateTime::<Utc>::from_timestamp(block_time_secs, 0).expect("Valid timestamp"));
+                last_signature = Some(tx_sig);
             }
-            last_signature = Some(sig_info.signature.parse::<Signature>()?);
         }
 
         sleep(Duration::from_secs(10)).await;
