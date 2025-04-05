@@ -86,7 +86,6 @@ export async function claimReward(
                 predictorTokenAccount: predictorTokenAccount,
                 poolTokenAccount: poolTokenAccount,
                 wsolMint: WSOL_MINT,
-                systemProgram: SystemProgram.programId,
                 tokenProgram: TOKEN_PROGRAM_ID,
             })
             .instruction()

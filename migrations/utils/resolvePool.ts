@@ -23,16 +23,6 @@ export async function resolvePool(
 ): Promise<Transaction> {
     console.log("Program ID:", program.programId.toBase58());
 
-    // Get the PDA for the config
-    const [configPDA] = await PublicKey.findProgramAddressSync(
-        [Buffer.from("config")],
-        program.programId
-    );
-
-    // Fetch the config account data to get the treasury owner.
-    const configAccountData = await program.account.configAccount.fetch(configPDA);
-    const treasuryOwner = configAccountData.treasury;
-
     // Get the PDA for the pool
     const cleanedPoolId = poolId.replace(/-/g, '');
     const poolBytes = Buffer.from(cleanedPoolId, 'hex');
@@ -42,7 +32,7 @@ export async function resolvePool(
     );
     
     // Get the PDA for the predictions
-    const predictionPDA = predictors.map(predictor => {
+    const predictionPDAs = predictors.map(predictor => {
         const [predictionPDA] = PublicKey.findProgramAddressSync(
             [Buffer.from("prediction"), poolPDA.toBuffer(), predictor.toBuffer()],
             program.programId
@@ -53,13 +43,6 @@ export async function resolvePool(
             isSigner: false,
         }
     });
-
-    // Get associated token accounts for WSOL
-    const treasuryTokenAccount = await getAssociatedTokenAddress(
-        WSOL_MINT,
-        treasuryOwner,
-        true // allowOwnerOffCurve = true for PDAs
-    );
     
     const poolTokenAccount = await getAssociatedTokenAddress(
         WSOL_MINT,
@@ -67,27 +50,22 @@ export async function resolvePool(
         true // allowOwnerOffCurve = true for PDAs
     );
 
-
     const prizeAmounts = prizes.map(prize => new BN(prize * LAMPORTS_PER_SOL)); // 0.001 SOL
 
-    if (prizeAmounts.length !== predictionPDA.length) {
+    if (prizeAmounts.length !== predictionPDAs.length) {
         throw new Error("Mismatched prize count");
     }
 
     // Resolve the pool
     const tx = await program.methods
-        .resolvePool(prizeAmounts)
+        .resolvePool(prizeAmounts, new BN(0))
         .accounts({
             pool: poolPDA,
             admin,
             poolTokenAccount: poolTokenAccount,
-            treasuryTokenAccount: treasuryTokenAccount,
-            config: configPDA,
             wsolMint: WSOL_MINT,
-            systemProgram: SystemProgram.programId,
-            tokenProgram: TOKEN_PROGRAM_ID,
         })
-        .remainingAccounts(predictionPDA)
+        .remainingAccounts(predictionPDAs)
         .transaction();
 
     console.log(`Transaction created! ${tx}`);
