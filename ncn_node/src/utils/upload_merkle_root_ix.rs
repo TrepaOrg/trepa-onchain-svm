@@ -53,13 +53,15 @@ impl ProveResolutionAccounts {
 /// * `proof` - The number argument that will be passed to the instruction.
 pub fn create_prove_resolution_instruction(
     program_id: Pubkey,
-    proof: Hash,
+    _proof: Hash,
     accounts: ProveResolutionAccounts,
 ) -> Instruction {
     // Create the instruction's argument data.
 
-    let args = ProveResolutionArgs::new(proof);
-    let data = args.proof_bytes();
+    //let args = ProveResolutionArgs::new(proof);
+    //let data = args.proof_bytes();
+    let proof: i64 = 0;
+    let data = proof.to_le_bytes().to_vec();
     let account_metas = accounts.to_account_metas();
 
     Instruction {
