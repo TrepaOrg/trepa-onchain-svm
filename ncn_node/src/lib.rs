@@ -4,13 +4,13 @@ pub mod utils;
 pub use utils::upload_merkle_root_ix;
 
 use {
+    log::{info, error},
     serde::{de::DeserializeOwned, Deserialize, Serialize},
     solana_client::{
         nonblocking::rpc_client::RpcClient,
         rpc_client::{RpcClient as SyncRpcClient},
     },
     solana_merkle_tree::MerkleTree,
-    solana_metrics::{datapoint_error, datapoint_warn},
     solana_program::{
         instruction::InstructionError,
         rent::{
@@ -31,7 +31,6 @@ use {
             TransactionError::{self},
         },
     },
-    solana_transaction_status::TransactionStatus,
     std::{
         collections::HashMap,
         fs::File,
@@ -62,35 +61,33 @@ pub struct GeneratedMerkleTree {
 impl GeneratedMerkleTree {
     pub fn new_from_prize_meta_collection(
         prize_collection: &PrizeCollection,
-        maybe_rpc_client: Option<SyncRpcClient>,
     ) -> Result<GeneratedMerkleTree, MerkleRootGeneratorError> {
-        let generated_merkle_tree = prize_collection
+        // Map each PrizeMeta to a single TreeNode
+        let mut tree_nodes: Vec<TreeNode> = prize_collection
             .prize_metas
-            .into_iter()
-            .filter_map(|prize_meta| {
-                let mut tree_node = TreeNode::new(prize_meta.predictor, prize_meta.prize_amount);
+            .iter()
+            .map(|prize_meta| TreeNode::new(prize_meta.predictor, prize_meta.prize_amount))
+            .collect();
 
-                let hashed_nodes: Vec<[u8; 32]> =
-                    tree_nodes.iter().map(|n| n.hash().to_bytes()).collect();
+        // Convert each TreeNode into its corresponding hash
+        let hashed_nodes: Vec<[u8; 32]> =
+            tree_nodes.iter().map(|node| node.hash().to_bytes()).collect();
 
-                let merkle_tree = MerkleTree::new(&hashed_nodes[..], true);
-                let max_num_nodes = tree_nodes.len() as u64;
+        // Build a single Merkle tree from all the hashed nodes
+        let merkle_tree = MerkleTree::new(&hashed_nodes[..], true);
+        let max_num_nodes = tree_nodes.len() as u64;
 
-                for (i, tree_node) in tree_nodes.iter_mut().enumerate() {
-                    tree_node.proof = Some(get_proof(&merkle_tree, i));
-                }
-
-                Some(Ok(GeneratedMerkleTree {
-                    pool_pda: prize_collection.pool_pda,
-                    merkle_root_upload_authority: prize_collection.merkle_root_upload_authority,
-                    merkle_root: *merkle_tree.get_root().unwrap(),
-                    tree_nodes,
-                    max_num_nodes,
-                }))
-            })
-            .collect::<Result<Vec<GeneratedMerkleTree>, MerkleRootGeneratorError>>()?;
-
-        Ok(generated_merkle_tree)
+        // Compute and assign the Merkle proof for each TreeNode
+        for (i, node) in tree_nodes.iter_mut().enumerate() {
+            node.proof = Some(get_proof(&merkle_tree, i));
+        }
+        Ok(GeneratedMerkleTree {
+            pool_pda: prize_collection.pool_pda,
+            merkle_root_upload_authority: prize_collection.merkle_root_upload_authority,
+            merkle_root: *merkle_tree.get_root().unwrap(),
+            tree_nodes,
+            max_num_nodes,
+        })
     }
 }
 
