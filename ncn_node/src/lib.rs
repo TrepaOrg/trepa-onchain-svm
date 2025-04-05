@@ -201,6 +201,8 @@ pub async fn sign_and_send_transactions_with_retries(
         .map(|txn| (txn.message_data(), txn))
         .collect::<HashMap<Vec<u8>, Transaction>>();
 
+    println!("transactions_to_process: {:?}", transactions_to_process);
+
     let start = Instant::now();
     while start.elapsed() < max_loop_duration && !transactions_to_process.is_empty() {
         // ensure we always have a recent blockhash
@@ -258,7 +260,11 @@ async fn signed_send(
 ) -> (Transaction, solana_rpc_client_api::client_error::Result<()>) {
     txn.sign(&[signer], blockhash); // just in time signing
     let res = match rpc_client.send_and_confirm_transaction(&txn).await {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            // Print the signature to the terminal upon success.
+            println!("Transaction successful! Signature: {}", txn.signatures[0]);
+            Ok(())
+        },
         Err(e) => {
             match e.kind {
                 // Already claimed, skip.
@@ -288,8 +294,9 @@ async fn signed_send(
                 // unexpected error, warn and retry
                 _ => {
                     error!(
-                        "Error sending transaction. Signature: {}, Error: {e:?}",
-                        txn.signatures[0]
+                        "Error sending transaction. Signature: {}, Error: {:?}",
+                        txn.signatures[0],
+                        e
                     );
                     Err(e)
                 }

@@ -4,6 +4,7 @@ use solana_sdk::{
     instruction::{AccountMeta, Instruction},
     hash::Hash,
 };
+use sha2::{Sha256, Digest};
 
 pub struct ProveResolutionArgs {
     pub proof: Hash,
@@ -34,7 +35,7 @@ impl ProveResolutionAccounts {
             // This account is expected to be a signer.
             AccountMeta::new(self.merkle_root_upload_authority, true),
             // These are provided as readonly or mutable as required.
-            AccountMeta::new_readonly(self.pool, false),
+            AccountMeta::new(self.pool, false),
             AccountMeta::new(self.pool_token_account, false),
             AccountMeta::new(self.treasury_token_account, false),
             AccountMeta::new_readonly(self.config, false),
@@ -56,17 +57,25 @@ pub fn create_prove_resolution_instruction(
     _proof: Hash,
     accounts: ProveResolutionAccounts,
 ) -> Instruction {
-    // Create the instruction's argument data.
+    // Compute the instruction discriminator for "prove_resolution"
+    let mut hasher = Sha256::new();
+    hasher.update("global:prove_resolution".as_bytes());
+    let hash = hasher.finalize();
+    let mut discriminator = [0u8; 8];
+    discriminator.copy_from_slice(&hash[..8]);
 
     //let args = ProveResolutionArgs::new(proof);
     //let data = args.proof_bytes();
     let proof: i64 = 0;
-    let data = proof.to_le_bytes().to_vec();
-    let account_metas = accounts.to_account_metas();
+    let proof_bytes = proof.to_le_bytes().to_vec();
+
+    let mut data = Vec::with_capacity(discriminator.len() + proof_bytes.len());
+    data.extend_from_slice(&discriminator);
+    data.extend_from_slice(&proof_bytes);
 
     Instruction {
         program_id,
-        accounts: account_metas,
+        accounts: accounts.to_account_metas(),
         data,
     }
 }

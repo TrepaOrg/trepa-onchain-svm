@@ -79,27 +79,30 @@ pub fn upload_merkle_root(
             }
         }
         let mut trees_needing_update: Vec<GeneratedMerkleTree> = vec![];
+
+        println!("pool_pda: {:?}", pool_pda);
         for tree in trees {
-            let account = rpc_client
-                .get_account(&pool_pda)
-                .await
-                .expect("fetch expect");
+            // let account = rpc_client
+            //     .get_account(&pool_pda)
+            //     .await
+            //     .expect("fetch expect");
 
-            let mut data = account.data.as_slice();
-            let fetched_pool_account =
-                PoolAccount::deserialize(&mut data)
-                    .expect("failed to deserialize pool_account state");
+            // let mut data = account.data.as_slice();
+            // let fetched_pool_account =
+            //     PoolAccount::deserialize(&mut data)
+            //         .expect("failed to deserialize pool_account state");
 
-            let needs_upload = match Option::from(fetched_pool_account.is_being_resolved) {
-                Some(is_being_resolved) => {
-                    is_being_resolved == true
-                }
-                None => false,
-            };
+            // let needs_upload = match Option::from(fetched_pool_account.is_being_resolved) {
+            //     Some(is_being_resolved) => {
+            //         is_being_resolved == true
+            //     }
+            //     None => false,
+            // };
 
-            if needs_upload {
-                trees_needing_update.push(tree);
-            }
+            // if needs_upload {
+            //     trees_needing_update.push(tree);
+            // }
+            trees_needing_update.push(tree);
         }
 
         info!("num trees need uploading: {:?}", trees_needing_update.len());
@@ -138,7 +141,7 @@ pub fn upload_merkle_root(
         let (to_process, failed_transactions) = sign_and_send_transactions_with_retries(
             &keypair, &rpc_client, max_concurrent_rpc_get_reqs, transactions, txn_send_batch_size, MAX_RETRY_DURATION).await;
         if !to_process.is_empty() {
-            panic!("{} remaining mev claim transactions, {} failed requests.", to_process.len(), failed_transactions.len());
+            panic!("{} transactions sent, {} failed requests.", to_process.len(), failed_transactions.len());
         }
     });
 
