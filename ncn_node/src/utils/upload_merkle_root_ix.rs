@@ -1,7 +1,9 @@
 //! This module contains functions that build instructions to interact with the trepa program.
-use anchor_lang::{
-    prelude::Pubkey, solana_program::instruction::Instruction, InstructionData, ToAccountMetas,
+use solana_sdk::{
+    pubkey::Pubkey,
+    instruction::Instruction,  // Use the Instruction from solana_sdk
 };
+use anchor_lang::{InstructionData, ToAccountMetas};
 
 use crate::constants::*;
 
@@ -33,14 +35,14 @@ pub fn upload_merkle_root_ix(
         pool_token_account,
         treasury_token_account,
         config,
-        wsol_mint,  
+        wsol_mint,
         token_program,
     }
     .to_account_metas(None);
 
     Instruction {
         program_id,
-        data: ProveResolution{ root }.data(),
+        data: ProveResolution { root }.data(),
         accounts: account_metas,
     }
 }
