@@ -62,7 +62,7 @@ impl GeneratedMerkleTree {
         prize_collection: &PrizeCollection,
     ) -> Result<GeneratedMerkleTree, MerkleRootGeneratorError> {
         // Map each PrizeMeta to a single TreeNode
-        let mut tree_nodes: Vec<TreeNode> = prize_collection
+        let tree_nodes: Vec<TreeNode> = prize_collection
             .prize_metas
             .iter()
             .map(|prize_meta| TreeNode::new(prize_meta.predictor, prize_meta.prize_amount))
@@ -73,13 +73,13 @@ impl GeneratedMerkleTree {
             tree_nodes.iter().map(|node| node.hash().to_bytes()).collect();
 
         // Build a single Merkle tree from all the hashed nodes
-        let merkle_tree = MerkleTree::new(&hashed_nodes[..], true);
+        let merkle_tree = MerkleTree::new(&hashed_nodes[..]);
         let max_num_nodes = tree_nodes.len() as u64;
 
-        // Compute and assign the Merkle proof for each TreeNode
-        for (i, node) in tree_nodes.iter_mut().enumerate() {
-            node.proof = Some(get_proof(&merkle_tree, i));
-        }
+        // // Compute and assign the Merkle proof for each TreeNode
+        // for (i, node) in tree_nodes.iter_mut().enumerate() {
+        //     node.proof = Some(get_proof(&merkle_tree, i));
+        // }
         Ok(GeneratedMerkleTree {
             pool_pda: prize_collection.pool_pda,
             merkle_root_upload_authority: prize_collection.merkle_root_upload_authority,
@@ -91,20 +91,23 @@ impl GeneratedMerkleTree {
 }
 
 
-pub fn get_proof(merkle_tree: &MerkleTree, i: usize) -> Vec<[u8; 32]> {
-    let mut proof = Vec::new();
-    let path = merkle_tree.find_path(i).expect("path to index");
-    for branch in path.get_proof_entries() {
-        if let Some(hash) = branch.get_left_sibling() {
-            proof.push(hash.to_bytes());
-        } else if let Some(hash) = branch.get_right_sibling() {
-            proof.push(hash.to_bytes());
-        } else {
-            panic!("expected some hash at each level of the tree");
-        }
-    }
-    proof
-}
+// pub fn get_proof(merkle_tree: &MerkleTree, i: usize) -> Vec<[u8; 32]> {
+//     let mut proof = Vec::new();
+//     let path = merkle_tree.find_path(i).expect("path to index");
+//     // Now iterate directly over the proof (Proof implements IntoIterator)
+//     for branch in path {
+//         if let Some(hash) = branch.get_left_sibling() {
+//             proof.push(hash.to_bytes());
+//         } else if let Some(hash) = branch.get_right_sibling() {
+//             proof.push(hash.to_bytes());
+//         } else {
+//             panic!("expected some hash at each level of the tree");
+//         }
+//     }
+//     proof
+// }
+
+
 
 #[derive(Clone, Eq, Debug, Hash, PartialEq, Deserialize, Serialize)]
 pub struct TreeNode {
