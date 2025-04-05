@@ -1,4 +1,4 @@
-use anchor_lang::prelude::Pubkey;
+use solana_sdk::pubkey::Pubkey;
 use once_cell::sync::Lazy;
 use std::str::FromStr;
 

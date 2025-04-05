@@ -3,7 +3,7 @@ use {
     crate::{
         read_json_from_file, sign_and_send_transactions_with_retries, GeneratedMerkleTree,
     },
-    crate::upload_merkle_root_ix::{upload_merkle_root_ix, ProveResolutionAccounts},
+    crate::utils::{create_prove_resolution_instruction, ProveResolutionAccounts},
     log::{error, info},
     solana_client::nonblocking::rpc_client::RpcClient,
     solana_program::{
@@ -16,7 +16,6 @@ use {
         transaction::Transaction,
     },
     anchor_lang::{AnchorDeserialize, AnchorSerialize},
-    borsh::{BorshDeserialize, BorshSerialize},
     std::{path::PathBuf, time::Duration},
     thiserror::Error,
     tokio::runtime::Builder,
@@ -48,8 +47,8 @@ pub fn upload_merkle_root(
         read_json_from_file(merkle_root_path).expect("read GeneratedMerkleTreeCollection");
     let keypair = read_keypair_file(keypair_path).expect("read keypair file");
 
-    let program_config =
-            Pubkey::find_program_address(&[b"config"], program_id).0;
+    // let program_config =
+    //         Pubkey::find_program_address(&[b"config"], program_id).0;
 
     let pool_pda = Pubkey::find_program_address(&[b"pool", &pool_id[..]], program_id).0;
 
@@ -63,7 +62,6 @@ pub fn upload_merkle_root(
         let rpc_client =
             RpcClient::new_with_commitment(rpc_url.to_string(), CommitmentConfig::confirmed());
         let trees: Vec<GeneratedMerkleTree> = merkle_tree
-            .generated_merkle_trees
             .into_iter()
             .filter(|tree| tree.merkle_root_upload_authority == keypair.pubkey())
             .collect();
@@ -83,16 +81,16 @@ pub fn upload_merkle_root(
         let mut trees_needing_update: Vec<GeneratedMerkleTree> = vec![];
         for tree in trees {
             let account = rpc_client
-                .get_account(pool_pda)
+                .get_account(&pool_pda)
                 .await
                 .expect("fetch expect");
 
             let mut data = account.data.as_slice();
             let fetched_pool_account =
-                PoolAccount::try_deserialize(&mut data)
+                PoolAccount::deserialize(&mut data)
                     .expect("failed to deserialize pool_account state");
 
-            let needs_upload = match fetched_pool_account.is_being_resolved {
+            let needs_upload = match Option::from(fetched_pool_account.is_being_resolved) {
                 Some(is_being_resolved) => {
                     is_being_resolved == true
                 }
@@ -108,7 +106,7 @@ pub fn upload_merkle_root(
 
         // prepare accounts for the transactions
 
-        let pool_token_account = get_associated_token_address(pool_pda, &*WSOL_MINT_PUBKEY);
+        let pool_token_account = get_associated_token_address(&pool_pda, &*WSOL_MINT_PUBKEY);
         let treasury_token_account = *TREASURY_TOKEN_ACCOUNT_PUBKEY;
         let config = *CONFIG_ACCOUNT_PUBKEY;
         let wsol_mint = *WSOL_MINT_PUBKEY;
@@ -117,9 +115,9 @@ pub fn upload_merkle_root(
         let transactions: Vec<Transaction> = trees_needing_update
             .iter()
             .map(|tree| {
-                let ix = upload_merkle_root_ix(
+                let ix = create_prove_resolution_instruction(
                     *program_id,
-                    tree.merkle_root.to_bytes(),
+                    tree.merkle_root,
                     ProveResolutionAccounts {
                         merkle_root_upload_authority: keypair.pubkey(),
                         pool: pool_pda,
@@ -147,7 +145,7 @@ pub fn upload_merkle_root(
     Ok(())
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct PoolAccount {
     pub question: [u8; 16],         // The prediction question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends

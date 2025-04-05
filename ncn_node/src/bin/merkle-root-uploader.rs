@@ -1,6 +1,7 @@
 use {
     clap::Parser, log::info, solana_sdk::pubkey::Pubkey,
-    solana_tip_distributor::merkle_root_upload_workflow::upload_merkle_root, std::path::PathBuf,
+    std::path::PathBuf,
+    resolution_prover::merkle_root_upload_workflow::upload_merkle_root,
 };
 
 #[derive(Parser, Debug)]
@@ -18,9 +19,13 @@ struct Args {
     #[arg(long, env)]
     rpc_url: String,
 
-    /// Tip distribution program ID
+    /// The program ID of the prediction program.
     #[arg(long, env)]
-    tip_distribution_program_id: Pubkey,
+    program_id: Pubkey,
+
+    /// The pool ID of the prediction pool.
+    #[arg(long, env, default_value = "b9cdc74e-c59a-4dbc-8006-c3e326040824")]
+    pool_id: Vec<u8>,
 
     /// Rate-limits the maximum number of requests per RPC connection
     #[arg(long, env, default_value_t = 100)]
@@ -36,16 +41,21 @@ fn main() {
 
     let args: Args = Args::parse();
 
+    if args.pool_id.len() != 16 {
+        panic!("pool_id must be 16 bytes");
+    }
+
     info!("starting merkle root uploader...");
-    if let Err(e) = upload_merkle_root(
-        &args.merkle_root_path,
-        &args.keypair_path,
-        &args.rpc_url,
-        &args.tip_distribution_program_id,
-        args.max_concurrent_rpc_get_reqs,
-        args.txn_send_batch_size,
+    if let Err(error) = upload_merkle_root(
+       &args.merkle_root_path,
+       &args.keypair_path,
+       &args.rpc_url,
+       &args.program_id,
+       args.pool_id.try_into().unwrap(),
+       args.max_concurrent_rpc_get_reqs,
+       args.txn_send_batch_size,
     ) {
-        panic!("failed to upload merkle roots: {:?}", e);
+        panic!("failed to upload merkle roots: {:?}", error);
     }
     info!(
         "uploaded merkle roots from file {:?}",

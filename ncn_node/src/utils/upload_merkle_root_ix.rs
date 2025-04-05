@@ -1,15 +1,20 @@
 //! This module contains functions that build instructions to interact with the trepa program.
 use solana_sdk::{
     pubkey::Pubkey,
-    instruction::Instruction,  // Use the Instruction from solana_sdk
+    instruction::{AccountMeta, Instruction},
+    hash::Hash,
 };
-use anchor_lang::{InstructionData, ToAccountMetas};
-use anchor_lang::prelude::{AccountMeta};
-use borsh::{BorshSerialize, BorshDeserialize};
 
-#[derive(BorshSerialize, BorshDeserialize, Debug)]
-pub struct ProveResolution {
-    pub root: [u8; 32],
+pub struct ProveResolutionArgs {
+    pub proof: Hash,
+}
+impl ProveResolutionArgs {
+    pub fn new(proof: Hash) -> Self {
+        Self { proof }
+    }
+    pub fn proof_bytes(&self) -> Vec<u8> {
+        self.proof.to_bytes().to_vec()
+    }
 }
 
 pub struct ProveResolutionAccounts {
@@ -22,12 +27,13 @@ pub struct ProveResolutionAccounts {
     pub token_program: Pubkey,
 }
 
-impl ToAccountMetas for ProveResolutionAccounts {
-    fn to_account_metas(&self, _program_id: Option<bool>) -> Vec<AccountMeta> {
+impl ProveResolutionAccounts {
+    /// Convert the accounts into a vector of `AccountMeta` for the instruction.
+    pub fn to_account_metas(&self) -> Vec<AccountMeta> {
         vec![
-            // Assume the upload authority must be a signer and mutable:
+            // This account is expected to be a signer.
             AccountMeta::new(self.merkle_root_upload_authority, true),
-            // The rest may be read-only or mutable as needed:
+            // These are provided as readonly or mutable as required.
             AccountMeta::new_readonly(self.pool, false),
             AccountMeta::new(self.pool_token_account, false),
             AccountMeta::new(self.treasury_token_account, false),
@@ -38,26 +44,27 @@ impl ToAccountMetas for ProveResolutionAccounts {
     }
 }
 
-pub fn upload_merkle_root_ix(
+/// A helper function that creates an instruction to call prove_resolution.
+///
+/// # Arguments
+///
+/// * `program_id` - The on-chain program ID to call.
+/// * `accounts` - The required account meta information for the call.
+/// * `proof` - The number argument that will be passed to the instruction.
+pub fn create_prove_resolution_instruction(
     program_id: Pubkey,
-    root: [u8; 32],
+    proof: Hash,
     accounts: ProveResolutionAccounts,
 ) -> Instruction {
+    // Create the instruction's argument data.
 
-    let account_metas = ProveResolutionAccounts {
-        merkle_root_upload_authority: accounts.merkle_root_upload_authority,
-        pool: accounts.pool,
-        pool_token_account: accounts.pool_token_account,
-        treasury_token_account: accounts.treasury_token_account,
-        config: accounts.config,
-        wsol_mint: accounts.wsol_mint,
-        token_program: accounts.token_program,
-    }
-    .to_account_metas(None);
+    let args = ProveResolutionArgs::new(proof);
+    let data = args.proof_bytes();
+    let account_metas = accounts.to_account_metas();
 
     Instruction {
         program_id,
-        data: Instruction { root }.data(),
         accounts: account_metas,
+        data,
     }
 }
