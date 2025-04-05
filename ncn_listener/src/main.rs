@@ -1,3 +1,5 @@
+pub mod constants;
+
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::{
@@ -9,17 +11,14 @@ use chrono::{DateTime, Utc};
 use anyhow::Result;
 use tokio::time::{sleep, Duration};
 
-const RPC_URL: &str = "https://api.devnet.solana.com";
-const PUBLIC_KEY: &str = "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e";
-
 #[tokio::main]
 async fn main() -> Result<()> {
-    let client = RpcClient::new_with_commitment(RPC_URL.to_string(), CommitmentConfig::confirmed());
-    let monitored_pubkey: Pubkey = PUBLIC_KEY.parse()?;
+    let client = RpcClient::new_with_commitment(constants::RPC_URL.to_string(), CommitmentConfig::confirmed());
+    let monitored_pubkey: Pubkey = constants::PUBLIC_KEY.parse()?;
     let mut last_signature = None;
     let mut last_processed_time: Option<DateTime<Utc>> = Some(Utc::now());
 
-    println!("Listening for events from {}", PUBLIC_KEY);
+    println!("Listening for events from {}", constants::PUBLIC_KEY);
 
     loop {
         let sigs = client
