@@ -73,6 +73,9 @@ pub mod trepa {
         pool.total_stake = 0;
         pool.is_finalized = false;
         pool.bump = ctx.bumps.pool;
+        pool.prize_sum = 0;
+        pool.is_being_resolved = false;
+        pool.proof = 1;
 
         msg!("Pool created: {}", pool.key());
         Ok(())
@@ -110,10 +113,11 @@ pub mod trepa {
         Ok(())
     }     
 
-    /// Finalizes a pool
+    /// Start a pool resolution
     pub fn resolve_pool(
         ctx: Context<ResolvePool>,
         prize_amounts: Vec<u64>,
+        proof: i64
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
 
@@ -124,7 +128,13 @@ pub mod trepa {
         //     current_timestamp >= pool.prediction_end_time,
         //     CustomError::PredictionNotEnded
         // );
-        pool.is_finalized = true;
+
+        require!(
+            !pool.is_being_resolved,
+            CustomError::PoolAlreadyBeingResolved
+        );
+        pool.is_being_resolved = true;
+        pool.proof = proof;
 
         // Get the dynamically passed accounts
         let remaining_accounts = &ctx.remaining_accounts;
@@ -160,6 +170,25 @@ pub mod trepa {
             CustomError::InsufficientFunds
         );
 
+        pool.prize_sum = prize_sum;
+        
+        Ok(())
+    }     
+
+    /// Prove and Finalize a pool
+    pub fn prove_resolution(
+        ctx: Context<ProveResolution>,
+        proof: i64,
+    ) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+
+        require!(
+            pool.proof == proof,
+            CustomError::ProofsDoNotMatch
+        );
+
+        pool.is_finalized = true;
+
         // Since pool is a PDA, create its signer seeds for CPI.
         let pool_seeds: &[&[u8]] = &[
             &b"pool"[..],
@@ -167,7 +196,6 @@ pub mod trepa {
             &[pool.bump],
         ];
         let signer_seeds = &[&pool_seeds[..]];
-        
         // Transfer the remaining balance (balance - prize_sum) from pool token account to treasury token account.
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -178,11 +206,14 @@ pub mod trepa {
             },
             signer_seeds,
         );
-        token::transfer(cpi_ctx, balance - prize_sum)?;
+
+        // Get balance from the pool's token account.
+        let balance = ctx.accounts.pool_token_account.amount;
+        token::transfer(cpi_ctx, balance - pool.prize_sum)?;
         
-        msg!("Pool {} resolved with prize sum {}", pool.key(), prize_sum);
+        msg!("Pool resolution proved, pool {} resolved with prize sum {}", pool.key(), pool.prize_sum);
         Ok(())
-    }     
+    }   
 
     pub fn claim_rewards(
         ctx: Context<ClaimRewards>,
@@ -230,4 +261,10 @@ pub enum CustomError {
 
     #[msg("Insufficient funds")]
     InsufficientFunds,
+
+    #[msg("Proofs do not match")]
+    ProofsDoNotMatch,
+
+    #[msg("Pool already being resolved")]
+    PoolAlreadyBeingResolved,
 }
