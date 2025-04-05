@@ -37,7 +37,7 @@ pub fn upload_merkle_root(
     merkle_root_path: &PathBuf,
     keypair_path: &PathBuf,
     rpc_url: &str,
-    tip_distribution_program_id: &Pubkey,
+    program_id: &Pubkey,
     max_concurrent_rpc_get_reqs: usize,
     txn_send_batch_size: usize,
 ) -> Result<(), MerkleRootUploadError> {
