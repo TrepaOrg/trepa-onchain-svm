@@ -161,8 +161,6 @@ pub struct ResolvePool<'info> {
     pub pool_token_account: Account<'info, TokenAccount>,   
 
     pub wsol_mint: Account<'info, token::Mint>,
-    
-    pub system_program: Program<'info, System>,
 }   
 
 #[derive(Accounts)]
@@ -194,7 +192,6 @@ pub struct ProveResolution<'info> {
 
     pub wsol_mint: Account<'info, token::Mint>,
 
-    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -234,7 +231,6 @@ pub struct ClaimRewards<'info> {
     
     pub wsol_mint: Account<'info, token::Mint>,
     
-    pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
 

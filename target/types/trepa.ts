@@ -188,7 +188,47 @@ export type Trepa = {
     {
       "name": "resolvePool",
       "docs": [
-        "Finalizes a pool"
+        "Start a pool resolution"
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "prizeAmounts",
+          "type": {
+            "vec": "u64"
+          }
+        },
+        {
+          "name": "proof",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "proveResolution",
+      "docs": [
+        "Prove and Finalize a pool"
       ],
       "accounts": [
         {
@@ -222,11 +262,6 @@ export type Trepa = {
           "isSigner": false
         },
         {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
@@ -234,10 +269,8 @@ export type Trepa = {
       ],
       "args": [
         {
-          "name": "prizeAmounts",
-          "type": {
-            "vec": "u64"
-          }
+          "name": "proof",
+          "type": "i64"
         }
       ]
     },
@@ -271,11 +304,6 @@ export type Trepa = {
         },
         {
           "name": "wsolMint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -348,12 +376,24 @@ export type Trepa = {
             "type": "u64"
           },
           {
+            "name": "isBeingResolved",
+            "type": "bool"
+          },
+          {
             "name": "isFinalized",
             "type": "bool"
           },
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "proof",
+            "type": "i64"
+          },
+          {
+            "name": "prizeSum",
+            "type": "u64"
           }
         ]
       }
@@ -408,6 +448,12 @@ export type Trepa = {
           },
           {
             "name": "InsufficientFunds"
+          },
+          {
+            "name": "ProofsDoNotMatch"
+          },
+          {
+            "name": "PoolAlreadyBeingResolved"
           }
         ]
       }
@@ -458,6 +504,11 @@ export type Trepa = {
       "code": 6008,
       "name": "PoolNotFinalized",
       "msg": "Pool not finalized"
+    },
+    {
+      "code": 6009,
+      "name": "PoolNotBeingResolved",
+      "msg": "Pool not being resolved"
     }
   ]
 };
@@ -652,7 +703,47 @@ export const IDL: Trepa = {
     {
       "name": "resolvePool",
       "docs": [
-        "Finalizes a pool"
+        "Start a pool resolution"
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "pool",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "poolTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "wsolMint",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "prizeAmounts",
+          "type": {
+            "vec": "u64"
+          }
+        },
+        {
+          "name": "proof",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "proveResolution",
+      "docs": [
+        "Prove and Finalize a pool"
       ],
       "accounts": [
         {
@@ -686,11 +777,6 @@ export const IDL: Trepa = {
           "isSigner": false
         },
         {
-          "name": "systemProgram",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
@@ -698,10 +784,8 @@ export const IDL: Trepa = {
       ],
       "args": [
         {
-          "name": "prizeAmounts",
-          "type": {
-            "vec": "u64"
-          }
+          "name": "proof",
+          "type": "i64"
         }
       ]
     },
@@ -735,11 +819,6 @@ export const IDL: Trepa = {
         },
         {
           "name": "wsolMint",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "systemProgram",
           "isMut": false,
           "isSigner": false
         },
@@ -812,12 +891,24 @@ export const IDL: Trepa = {
             "type": "u64"
           },
           {
+            "name": "isBeingResolved",
+            "type": "bool"
+          },
+          {
             "name": "isFinalized",
             "type": "bool"
           },
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "proof",
+            "type": "i64"
+          },
+          {
+            "name": "prizeSum",
+            "type": "u64"
           }
         ]
       }
@@ -872,6 +963,12 @@ export const IDL: Trepa = {
           },
           {
             "name": "InsufficientFunds"
+          },
+          {
+            "name": "ProofsDoNotMatch"
+          },
+          {
+            "name": "PoolAlreadyBeingResolved"
           }
         ]
       }
@@ -922,6 +1019,11 @@ export const IDL: Trepa = {
       "code": 6008,
       "name": "PoolNotFinalized",
       "msg": "Pool not finalized"
+    },
+    {
+      "code": 6009,
+      "name": "PoolNotBeingResolved",
+      "msg": "Pool not being resolved"
     }
   ]
 };
