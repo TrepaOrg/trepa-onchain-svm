@@ -175,46 +175,6 @@ pub mod trepa {
         Ok(())
     }     
 
-    /// Prove and Finalize a pool
-    pub fn prove_resolution(
-        ctx: Context<ProveResolution>,
-        proof: i64,
-    ) -> Result<()> {
-        let pool = &mut ctx.accounts.pool;
-
-        require!(
-            pool.proof == proof,
-            CustomError::ProofsDoNotMatch
-        );
-
-        pool.is_finalized = true;
-
-        // Since pool is a PDA, create its signer seeds for CPI.
-        let pool_seeds: &[&[u8]] = &[
-            &b"pool"[..],
-            &pool.question[..],
-            &[pool.bump],
-        ];
-        let signer_seeds = &[&pool_seeds[..]];
-        // Transfer the remaining balance (balance - prize_sum) from pool token account to treasury token account.
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.pool_token_account.to_account_info(),
-                to: ctx.accounts.treasury_token_account.to_account_info(),
-                authority: pool.to_account_info(),
-            },
-            signer_seeds,
-        );
-
-        // Get balance from the pool's token account.
-        let balance = ctx.accounts.pool_token_account.amount;
-        token::transfer(cpi_ctx, balance - pool.prize_sum)?;
-        
-        msg!("Pool resolution proved, pool {} resolved with prize sum {}", pool.key(), pool.prize_sum);
-        Ok(())
-    }   
-
     pub fn claim_rewards(
         ctx: Context<ClaimRewards>,
     ) -> Result<()> {
