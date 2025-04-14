@@ -73,13 +73,68 @@ pub mod trepa {
         pool.total_stake = 0;
         pool.is_finalized = false;
         pool.bump = ctx.bumps.pool;
-        pool.prize_sum = 0;
-        pool.is_being_resolved = false;
-        pool.proof = 1;
+        pool.is_resolved = false;
+        pool.root = 0;
 
         msg!("Pool created: {}", pool.key());
         Ok(())
     }
+
+    /// Start a pool resolution
+    pub fn resolve_pool(
+        ctx: Context<ResolvePool>,
+        root: i64, 
+        protocol_fee: u64,
+    ) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+
+        // Check if the pool is not ended 
+        // TODO: enable this
+        // let current_timestamp = Clock::get()?.unix_timestamp;
+        // require!(
+        //     current_timestamp >= pool.prediction_end_time,
+        //     CustomError::PredictionNotEnded
+        // );
+
+        require!(
+            !pool.is_resolved,
+            CustomError::PoolAlreadyBeingResolved
+        );
+        
+        // Get balance from the pool's token account.
+        let balance = ctx.accounts.pool_token_account.amount;
+        require!(
+            balance >= protocol_fee, 
+            CustomError::InsufficientFunds
+        );
+
+        pool.is_resolved = true;
+        pool.root = root;
+
+        // Since pool is a PDA, create its signer seeds for CPI.
+        let pool_seeds: &[&[u8]] = &[
+            &b"pool"[..],
+            &pool.question[..],
+            &[pool.bump],
+        ];
+        let signer_seeds = &[&pool_seeds[..]];
+        // Transfer the protocol fee from pool token account to treasury token account.
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.pool_token_account.to_account_info(),
+                to: ctx.accounts.treasury_token_account.to_account_info(),
+                authority: pool.to_account_info(),
+            },
+            signer_seeds,
+        );
+
+        token::transfer(cpi_ctx, protocol_fee)?;
+        
+        Ok(())
+    }     
+
+    // ===== USER FUNCTIONS =====
 
     /// Predicts the outcome of a pool
     pub fn predict(
@@ -113,68 +168,7 @@ pub mod trepa {
         Ok(())
     }     
 
-    /// Start a pool resolution
-    pub fn resolve_pool(
-        ctx: Context<ResolvePool>,
-        prize_amounts: Vec<u64>,
-        proof: i64
-    ) -> Result<()> {
-        let pool = &mut ctx.accounts.pool;
-
-        // Check if the pool is not ended 
-        // TODO: enable this
-        // let current_timestamp = Clock::get()?.unix_timestamp;
-        // require!(
-        //     current_timestamp >= pool.prediction_end_time,
-        //     CustomError::PredictionNotEnded
-        // );
-
-        require!(
-            !pool.is_being_resolved,
-            CustomError::PoolAlreadyBeingResolved
-        );
-        pool.is_being_resolved = true;
-        pool.proof = proof;
-
-        // Get the dynamically passed accounts
-        let remaining_accounts = &ctx.remaining_accounts;
-        require!(
-            remaining_accounts.len() == prize_amounts.len(),
-            CustomError::MismatchedPrizeCount
-        );
-
-        let mut prize_sum = 0;
-        // Process each prediction account dynamically
-        for (index, account_info) in remaining_accounts.iter().cloned().enumerate() {
-            let mut prediction_acc: PredictionAccount = PredictionAccount::try_deserialize(
-                &mut &account_info.data.borrow()[..]
-            )?;
-            
-            require!(
-                prediction_acc.pool == pool.key(),
-                CustomError::InvalidPool
-            );
-
-            prediction_acc.prize = prize_amounts[index];
-            //msg!("Updated prize for prediction: {}", prediction_account.prize);
-            prediction_acc.try_serialize(&mut &mut account_info.data.borrow_mut()[..])?;
-
-            prize_sum += prediction_acc.prize;
-        }
-
-        // Get balance from the pool's token account.
-        let balance = ctx.accounts.pool_token_account.amount;
-        
-        require!(
-            balance >= prize_sum, 
-            CustomError::InsufficientFunds
-        );
-
-        pool.prize_sum = prize_sum;
-        
-        Ok(())
-    }     
-
+    /// Claim the rewards for a prediction
     pub fn claim_rewards(
         ctx: Context<ClaimRewards>,
     ) -> Result<()> {
@@ -213,17 +207,8 @@ pub enum CustomError {
     #[msg("Prediction not ended")]
     PredictionNotEnded,
 
-    #[msg("Invalid pool")]
-    InvalidPool,
-
-    #[msg("Mismatched prize count")]
-    MismatchedPrizeCount,   
-
     #[msg("Insufficient funds")]
     InsufficientFunds,
-
-    #[msg("Proofs do not match")]
-    ProofsDoNotMatch,
 
     #[msg("Pool already being resolved")]
     PoolAlreadyBeingResolved,
