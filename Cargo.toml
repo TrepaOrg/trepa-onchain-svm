@@ -3,7 +3,6 @@ members = [
     "programs/*"
 ]
 resolver = "2"
-name = "Trepa Onchain"
 
 [profile.release]
 overflow-checks = true
