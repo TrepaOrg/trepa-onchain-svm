@@ -7,7 +7,7 @@
 **/target/sbf-solana-solana
 **/target/.*
 **/target/CACHEDIR.TAG
-**/target/sbf-solana-solana
+**/target/sbpf-solana-solana
 **/*.rs.bk
 node_modules
 test-ledger
