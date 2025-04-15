@@ -21,17 +21,18 @@ pub struct PoolAccount {
     pub total_stake: u64,           // Total tokens staked
     pub is_resolved: bool,          // Whether the pool is resolved
     pub is_finalized: bool,         // Whether the pool has been finalized and proved
+    pub root: [u8; 32],             // Root of the merkle tree for the pool resolution
     pub bump: u8,                   // PDA bump
-    pub root: i64,                  // Root of the merkle tree for the pool resolution
 }
 
 #[account]
 pub struct PredictionAccount {
+    pub prediction: [u8; 16],
+    // is it needed?
     pub predictor: Pubkey,          // Predictor's public key
     pub pool: Pubkey,               // Associated spark/pool
     pub prediction_value: u8,       // Predicted "Yes" percentage (0-100)
     //pub stake_amount: u64,          // Amount staked needed for spl tokens
-    pub prize: u64,                 // Prize amount
     pub is_claimed: bool,           // Whether rewards have been claimed
     pub bump: u8,                   // PDA bump
 }

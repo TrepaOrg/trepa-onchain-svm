@@ -8,6 +8,7 @@ pub use context::*;
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer};
+use solana_program::hash::hash; // Using SHA256 from Solana's SDK
 
 declare_id!("55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e");
 
@@ -74,7 +75,7 @@ pub mod trepa {
         pool.is_finalized = false;
         pool.bump = ctx.bumps.pool;
         pool.is_resolved = false;
-        pool.root = 0;
+        pool.root = [0u8; 32];
 
         msg!("Pool created: {}", pool.key());
         Ok(())
@@ -83,7 +84,7 @@ pub mod trepa {
     /// Start a pool resolution
     pub fn resolve_pool(
         ctx: Context<ResolvePool>,
-        root: i64, 
+        merkle_root: [u8; 32], 
         protocol_fee: u64,
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
@@ -109,7 +110,7 @@ pub mod trepa {
         );
 
         pool.is_resolved = true;
-        pool.root = root;
+        pool.root = merkle_root;
 
         // Since pool is a PDA, create its signer seeds for CPI.
         let pool_seeds: &[&[u8]] = &[
@@ -148,10 +149,8 @@ pub mod trepa {
         let prediction = &mut ctx.accounts.prediction;
         prediction.pool = pool.key();
         prediction.prediction_value = pred;
-        prediction.prize = 0;
         prediction.is_claimed = false;
         prediction.bump = ctx.bumps.prediction;
-        prediction.predictor = ctx.accounts.predictor.key();
 
         // Transfer WSOL from the predictor's token account to the pool's token account
         let cpi_ctx = CpiContext::new(
@@ -171,21 +170,48 @@ pub mod trepa {
     /// Claim the rewards for a prediction
     pub fn claim_rewards(
         ctx: Context<ClaimRewards>,
+        amount: u64,
+        proof: Vec<[u8; 32]>,
     ) -> Result<()> {
+        // Compute the leaf as SHA256(address || amount)
+        let predictor_bytes = ctx.accounts.predictor.key().to_bytes(); // 32 bytes
+        let amount_bytes = amount.to_le_bytes(); // 8 bytes
+
+        let mut data = [0u8; 40];
+        data[..32].copy_from_slice(&predictor_bytes);
+        data[32..].copy_from_slice(&amount_bytes);
+
+        let leaf = hash(&data).to_bytes();
+
+        let mut computed_hash = leaf;
+        for node in proof.iter() {
+            let mut combined = [0u8; 64];
+            // Ensure lexicographical order before hashing.
+            if computed_hash <= *node {
+                combined[..32].copy_from_slice(&computed_hash);
+                combined[32..].copy_from_slice(node);
+            } else {
+                combined[..32].copy_from_slice(node);
+                combined[32..].copy_from_slice(&computed_hash);
+            }
+            computed_hash = hash(&combined).to_bytes();
+        }
+
+        require!(
+            computed_hash == ctx.accounts.pool.root,
+            CustomError::InvalidProof
+        );
+
         let prediction = &mut ctx.accounts.prediction;
-        
-        let prize = prediction.prize;
-        prediction.prize = 0;
         prediction.is_claimed = true;
-        
-        // Transfer WSOL from the pool's token account to the predictor's token account
+
+        // Transfer WSOL from the pool's token account to the predictor's token account.
         let pool_seeds: &[&[u8]] = &[
-            &b"pool"[..],
-            &ctx.accounts.pool.question[..],
-            &[ctx.accounts.pool.bump]
+            b"pool",
+            &ctx.accounts.pool.question,
+            &[ctx.accounts.pool.bump],
         ];
-        let signer_seeds = &[&pool_seeds[..]];
-        
+        let signer_seeds = &[pool_seeds];
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
@@ -195,12 +221,24 @@ pub mod trepa {
             },
             signer_seeds,
         );
-        token::transfer(cpi_ctx, prize)?;
+        token::transfer(cpi_ctx, amount)?;
 
-        msg!("Reward claimed: {} for prediction {}", prize, prediction.key());
+        msg!("Reward claimed: {} for prediction {}", amount, prediction.key());
         Ok(())
     }      
 }     
+
+// using Solana’s built‑in SHA256 hash function. In this example, the predictor’s 32-byte public key is concatenated with the 8-byte little‑endian representation of the amount into a 40‑byte buffer. Then the function iteratively hashes the leaf together with each proof node (sorting the two inputs lexicographically before hashing) until a final computed hash is produced. This final hash is then required to match the stored Merkle root. (It is assumed that your pool account now stores 
+//     root
+//     root as a 
+//     [
+//     u
+//     8
+//     ;
+//     32
+//     ]
+//     [u8;32].)
+
 
 #[error_code]
 pub enum CustomError {
@@ -212,4 +250,7 @@ pub enum CustomError {
 
     #[msg("Pool already being resolved")]
     PoolAlreadyBeingResolved,
+
+    #[msg("Invalid proof")]
+    InvalidProof,
 }
