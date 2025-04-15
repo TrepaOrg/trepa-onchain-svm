@@ -8,7 +8,7 @@ pub use context::*;
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer};
-use solana_program::hash::hash; // Using SHA256 from Solana's SDK
+use anchor_lang::solana_program::hash::hash; // Using SHA256 from Solana's SDK
 
 declare_id!("55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e");
 
