@@ -8,7 +8,7 @@ skip-lint = false
 trepa = "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
 
 [programs."https://api.devnet.solana.com"]
-trepa = "55VKBiih7w3zNsYsx9LoSzgjXQjm2PW2u2LLJKf6o12e"
+trepa = "8PYDEgUSwdpbvWUtER6mAeCveCFFCTR123RoZ6YrvdKA"
 
 [registry]
 url = "https://api.devnet.solana.com"
