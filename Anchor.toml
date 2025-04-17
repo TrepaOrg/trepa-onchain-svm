@@ -1,14 +1,16 @@
 [toolchain]
+anchor_version = "0.31.0"
+solana_version = "2.2.7"
 
 [features]
-seeds = false
+resolution = true
 skip-lint = false
-
-[programs."https://api.testnet.sonic.game/"]
-trepa = "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
 
 [programs."https://api.devnet.solana.com"]
 trepa = "8PYDEgUSwdpbvWUtER6mAeCveCFFCTR123RoZ6YrvdKA"
+
+[programs."https://api.testnet.sonic.game/"]
+trepa = "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
 
 [registry]
 url = "https://api.devnet.solana.com"
@@ -18,12 +20,12 @@ cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+batch = "ts-node migrations/sendBatchedTransfer.ts"
+claim = "ts-node migrations/claimReward.ts"
+config = "ts-node migrations/updateConfig.ts"
 init = "ts-node migrations/initialize.ts"
 pool = "ts-node migrations/initPool.ts"
 predict = "ts-node migrations/postPrediction.ts"
-value = "ts-node migrations/getPredictionData.ts"
 resolve = "ts-node migrations/resolvePool.ts"
-claim = "ts-node migrations/claimReward.ts"
-config = "ts-node migrations/updateConfig.ts"
-batch = "ts-node migrations/sendBatchedTransfer.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+value = "ts-node migrations/getPredictionData.ts"
