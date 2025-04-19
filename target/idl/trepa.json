@@ -161,9 +161,6 @@
           }
         },
         {
-          "name": "treasury"
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -184,6 +181,10 @@
         {
           "name": "platform_fee",
           "type": "u64"
+        },
+        {
+          "name": "treasury",
+          "type": "pubkey"
         }
       ]
     },
@@ -373,6 +374,10 @@
         {
           "name": "platform_fee",
           "type": "u64"
+        },
+        {
+          "name": "treasury",
+          "type": "pubkey"
         }
       ]
     }

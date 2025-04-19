@@ -25,6 +25,7 @@ pub mod trepa {
         max_stake: u64,
         max_roi: u64,  // Represented as basis points (1% = 100)
         platform_fee: u64,       // Basis points
+        treasury: Pubkey,
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
 
@@ -33,7 +34,7 @@ pub mod trepa {
         config.max_stake = max_stake;
         config.max_roi = max_roi;
         config.platform_fee = platform_fee;
-        config.treasury = ctx.accounts.treasury.key();
+        config.treasury = treasury;
         config.bump = ctx.bumps.config;
 
         msg!("Trepa platform initialized");
@@ -47,6 +48,7 @@ pub mod trepa {
         max_stake: u64,
         max_roi: u64,
         platform_fee: u64,
+        treasury: Pubkey,
     ) -> Result<()> {
         let config = &mut ctx.accounts.config;
         
@@ -54,7 +56,7 @@ pub mod trepa {
         config.max_stake = max_stake;
         config.max_roi = max_roi;
         config.platform_fee = platform_fee;
-
+        config.treasury = treasury;
         msg!("Trepa parameters updated");
         Ok(())
     }
@@ -131,7 +133,8 @@ pub mod trepa {
         );
 
         token::transfer(cpi_ctx, protocol_fee)?;
-        
+        msg!("Protocol fee {} transferred to treasury: {}", protocol_fee, ctx.accounts.config.treasury);
+        msg!("Pool resolved: {}", pool.key());
         Ok(())
     }     
 

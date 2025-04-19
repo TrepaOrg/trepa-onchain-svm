@@ -21,7 +21,6 @@ export async function resolvePool(
     prizes: number[],
     predictors: PublicKey[]
 ): Promise<Transaction> {
-    console.log("Program ID:", program.programId.toBase58());
 
     // Get the PDA for the pool
     const cleanedPoolId = poolId.replace(/-/g, '');

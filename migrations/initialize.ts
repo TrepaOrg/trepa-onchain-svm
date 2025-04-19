@@ -32,11 +32,11 @@ async function main() {
       minStake,
       maxStake,
       maxRoi,
-      platformFee
+      platformFee,
+      provider.wallet.publicKey
     )
     .accounts({
       admin: provider.wallet.publicKey,
-      treasury: provider.wallet.publicKey,
     })
     .rpc();
 

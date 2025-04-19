@@ -52,9 +52,6 @@ pub struct Initialize<'info> {
     )]
     pub config: Account<'info, ConfigAccount>,
     
-    /// CHECK: The treasury is a plain wallet account, and no additional checks are necessary.
-    pub treasury: UncheckedAccount<'info>,
-    
     pub system_program: Program<'info, System>,
 }
 

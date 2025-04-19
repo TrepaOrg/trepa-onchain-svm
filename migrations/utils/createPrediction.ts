@@ -87,7 +87,7 @@ export async function createPrediction(
              )
          );
      } else {
-         console.log("Pool token account exists");
+        console.log("Pool token account exists");
      }
 
     // Transfer `stake` SOL from the wallet to the predictor's WSOL token account.

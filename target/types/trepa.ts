@@ -167,9 +167,6 @@ export type Trepa = {
           }
         },
         {
-          "name": "treasury"
-        },
-        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -190,6 +187,10 @@ export type Trepa = {
         {
           "name": "platformFee",
           "type": "u64"
+        },
+        {
+          "name": "treasury",
+          "type": "pubkey"
         }
       ]
     },
@@ -379,6 +380,10 @@ export type Trepa = {
         {
           "name": "platformFee",
           "type": "u64"
+        },
+        {
+          "name": "treasury",
+          "type": "pubkey"
         }
       ]
     }
