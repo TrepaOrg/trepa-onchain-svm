@@ -112,7 +112,7 @@ export type Trepa = {
       ],
       "args": [
         {
-          "name": "question",
+          "name": "questionId",
           "type": {
             "array": [
               "u8",
@@ -220,34 +220,7 @@ export type Trepa = {
         },
         {
           "name": "prediction",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  101,
-                  100,
-                  105,
-                  99,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "account",
-                "path": "predictor"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "predictorTokenAccount",
@@ -277,6 +250,15 @@ export type Trepa = {
         {
           "name": "stake",
           "type": "u64"
+        },
+        {
+          "name": "predictionId",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
         }
       ]
     },
@@ -583,7 +565,7 @@ export type Trepa = {
         "kind": "struct",
         "fields": [
           {
-            "name": "prediction",
+            "name": "predictionId",
             "type": {
               "array": [
                 "u8",

@@ -27,12 +27,11 @@ pub struct PoolAccount {
 
 #[account]
 pub struct PredictionAccount {
-    pub prediction: [u8; 16],
-    // is it needed?
+    pub prediction_id: [u8; 16],
     pub predictor: Pubkey,          // Predictor's public key
     pub pool: Pubkey,               // Associated spark/pool
+    // remove later
     pub prediction_value: u8,       // Predicted "Yes" percentage (0-100)
-    //pub stake_amount: u64,          // Amount staked needed for spl tokens
     pub is_claimed: bool,           // Whether rewards have been claimed
     pub bump: u8,                   // PDA bump
 }
@@ -74,7 +73,7 @@ pub struct UpdateConfig<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(question: [u8; 16], prediction_end_time: i64)]
+#[instruction(question_id: [u8; 16], prediction_end_time: i64)]
 pub struct CreatePool<'info> {
     #[account(
         mut,
@@ -86,19 +85,18 @@ pub struct CreatePool<'info> {
         init,
         payer = admin,
         space = 8 + std::mem::size_of::<PoolAccount>() + 20,  // 8 for the discriminator; fixed size for PoolAccount; 20 bytes for the string (4 for length + 16 max)
-        seeds = [b"pool", &question[..]],
+        seeds = [b"pool", &question_id[..]],
         bump,
         constraint = prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
-
-    //pub config: Account<'info, ConfigAccount>,
     
     pub system_program: Program<'info, System>,
     pub clock: Sysvar<'info, Clock>,
 }
 
 #[derive(Accounts)]
+#[instruction(prediction_id: [u8; 16])]
 pub struct Predict<'info> {
     #[account(mut)]
     pub predictor: Signer<'info>,
@@ -109,12 +107,11 @@ pub struct Predict<'info> {
     )]
     pub pool: Account<'info, PoolAccount>,
     
-    // todo do we need it (for claiming - yes)
     #[account(
         init,
         payer = predictor,
         space = 8 + std::mem::size_of::<PredictionAccount>(),
-        seeds = [b"prediction", pool.key().as_ref(), predictor.key().as_ref()], // todo change to Uuid
+        seeds = [b"prediction", &prediction_id[..]], 
         bump
     )]
     pub prediction: Account<'info, PredictionAccount>,

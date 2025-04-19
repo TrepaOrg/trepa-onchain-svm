@@ -64,12 +64,12 @@ pub mod trepa {
     /// Creates a new prediction pool
     pub fn create_pool(
         ctx: Context<CreatePool>,
-        question: [u8; 16],
+        question_id: [u8; 16],
         prediction_end_time: i64,
     ) -> Result<()> {
 
         let pool = &mut ctx.accounts.pool;
-        pool.question_id = question;
+        pool.question_id = question_id;
         pool.prediction_end_time = prediction_end_time;
         pool.total_stake = 0;
         pool.is_finalized = false;
@@ -142,6 +142,7 @@ pub mod trepa {
         ctx: Context<Predict>,
         pred: u8,
         stake: u64,  // the intended stake amount
+        prediction_id: [u8; 16],
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
         pool.total_stake += stake;
@@ -151,6 +152,8 @@ pub mod trepa {
         prediction.prediction_value = pred;
         prediction.is_claimed = false;
         prediction.bump = ctx.bumps.prediction;
+        prediction.prediction_id = prediction_id;
+        prediction.predictor = ctx.accounts.predictor.key();
 
         // Transfer WSOL from the predictor's token account to the pool's token account
         let cpi_ctx = CpiContext::new(

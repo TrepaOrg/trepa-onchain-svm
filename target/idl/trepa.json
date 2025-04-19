@@ -106,7 +106,7 @@
       ],
       "args": [
         {
-          "name": "question",
+          "name": "question_id",
           "type": {
             "array": [
               "u8",
@@ -214,34 +214,7 @@
         },
         {
           "name": "prediction",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  101,
-                  100,
-                  105,
-                  99,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "account",
-                "path": "predictor"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "predictor_token_account",
@@ -271,6 +244,15 @@
         {
           "name": "stake",
           "type": "u64"
+        },
+        {
+          "name": "prediction_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
         }
       ]
     },
@@ -577,7 +559,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "prediction",
+            "name": "prediction_id",
             "type": {
               "array": [
                 "u8",
