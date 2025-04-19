@@ -2,15 +2,14 @@ import * as anchor from "@coral-xyz/anchor";
 import { assert } from "chai";
 import { Trepa } from "../target/types/trepa";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
-import { createPool } from "../migrations/utils/createPool";
-import { createPrediction } from "../migrations/utils/createPrediction";
+import { createPool, createPrediction, resolvePool } from "../migrations/utils";
 import { POOL_ID, PREDICTION_ID } from "../migrations/constants";
 import { BN } from "bn.js";
 import { getPredictionPDAandIdArray, getPoolPDAandIdArray } from "../migrations/utils/getPDAs";
 
 let predictionWallet: anchor.web3.Keypair;
 
-describe("Trepa contract stable", () => {
+describe("Trepa contract stable tests", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.trepa as anchor.Program<Trepa>;
@@ -28,7 +27,7 @@ describe("Trepa contract stable", () => {
       blockhash: latestBlockhash.blockhash,
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
     });
-    console.log(predictionWallet.publicKey.toBase58());
+    //console.log(predictionWallet.publicKey.toBase58());
   });
   
   it("initializes config account", async () => {
@@ -84,7 +83,6 @@ describe("Trepa contract stable", () => {
     assert.ok(poolAccount.predictionEndTime >= new BN(Math.floor(Date.now() / 1000) + 86399), "Prediction end time is correct");
   });
 
-
   it("predicts in the pool", async () => {
     const defaultPrediction = {
       prediction: 10, // 10%
@@ -117,5 +115,11 @@ describe("Trepa contract stable", () => {
     assert.ok(predictionAccount.pool.equals(poolPDA), "Pool is correct");
     assert.ok(poolAccount.totalStake.eq(new anchor.BN(defaultPrediction.stake * LAMPORTS_PER_SOL)), "Total stake is correct")
     assert.ok(predictionAccount.isClaimed === false, "Prediction is not claimed");
+  });
+
+  it("finalizes the pool", async () => {
+    const tx = await resolvePool(program, POOL_ID, provider.wallet.publicKey, [0.001], [predictionWallet.publicKey]);
+    const signature = await provider.sendAndConfirm(tx);
+    // console.log("Pool finalization transaction signature:", signature);
   });
 });
