@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Trepa } from "../target/types/trepa";
 import { createPrediction } from "./utils/createPrediction";
-import { POOL_ID } from "./constants";
+import { POOL_ID, PREDICTION_ID } from "./constants";
 
 async function main() {
   // Set up the provider and program
@@ -26,7 +26,8 @@ async function main() {
     provider.wallet.publicKey, 
     poolId, 
     10,
-    0.01 // 0.01 SOL
+    0.01, // 0.01 SOL
+    PREDICTION_ID
   );
 
   const signature = await provider.sendAndConfirm(tx);

@@ -16,7 +16,8 @@ trepa = "4Bosp31ZmBLwXbsgq4J7pvkDRvAfV57sk1D8WpUcanCU"
 url = "https://api.devnet.solana.com"
 
 [provider]
-cluster = "localnet" # cluster = "devnet"
+cluster = "localnet" 
+# cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
