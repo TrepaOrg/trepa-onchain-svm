@@ -1,5 +1,5 @@
 import { getPredictionValueFromTx } from "./utils/getPredictionValue";
-import * as anchor from "@project-serum/anchor";
+import * as anchor from "@coral-xyz/anchor";
 import { getPredictionAccountData } from "./utils/getAccountsData";
 import { Trepa } from "../target/types/trepa";
 import { POOL_ID } from "./constants";

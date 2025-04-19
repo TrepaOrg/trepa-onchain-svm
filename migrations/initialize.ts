@@ -1,4 +1,4 @@
-import * as anchor from "@project-serum/anchor";
+import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { Trepa } from "../target/types/trepa";
 
@@ -35,8 +35,8 @@ async function main() {
       platformFee
     )
     .accounts({
-      config: configPDA,
       admin: provider.wallet.publicKey,
+      config: configPDA,
       treasury: provider.wallet.publicKey,
       systemProgram: SystemProgram.programId,
     })
