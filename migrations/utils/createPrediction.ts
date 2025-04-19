@@ -13,6 +13,7 @@ import {
     createAssociatedTokenAccountInstruction,
     createSyncNativeInstruction
 } from "@solana/spl-token";
+import { getPoolPDAandIdArray, getPredictionPDAandIdArray } from "./getPDAs";
 
 // WSOL mint address (same on all networks)
 const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
@@ -32,25 +33,16 @@ export async function createPrediction(
     wallet: PublicKey, 
     poolId: string, // 16 bytes uuid
     prediction: number,
-    stake: number
+    stake: number,
+    predictionId: string
 ): Promise<Transaction> {
-    console.log("Program ID:", program.programId.toBase58());
+    //console.log("Program ID:", program.programId.toBase58());
 
-    // Get the PDA for the pool
-    const cleanedPoolId = poolId.replace(/-/g, '');
-    const poolBytes = Buffer.from(cleanedPoolId, 'hex');
-    const [poolPDA] = await PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), poolBytes],
-        program.programId
-    );
-    console.log("Pool PDA:", poolPDA.toBase58());
+    const { poolPDA, questionBytes } = await getPoolPDAandIdArray(program, poolId);
+    //console.log("Pool PDA:", poolPDA.toBase58());
 
-    // Get the PDA for the prediction       
-    const [predictionPDA] = await PublicKey.findProgramAddressSync(
-        [Buffer.from("prediction"), poolPDA.toBuffer(), wallet.toBuffer()],
-        program.programId
-    );
-    console.log("Prediction PDA:", predictionPDA.toBase58());
+    const { predictionPDA, predictionIdBytes } = await getPredictionPDAandIdArray(program, predictionId);
+    //console.log("Prediction PDA:", predictionPDA.toBase58());
 
     // Get associated token accounts for WSOL
     const predictorTokenAccount = await getAssociatedTokenAddress(
@@ -69,7 +61,7 @@ export async function createPrediction(
     // Check if the predictor token account exists and create it if needed
     const predictorTokenAccountInfo = await connection.getAccountInfo(predictorTokenAccount);
     if (!predictorTokenAccountInfo) {
-        console.log("Creating predictor token account");
+        //console.log("Creating predictor token account");
         tx.add(
             createAssociatedTokenAccountInstruction(
                 wallet,
@@ -85,7 +77,7 @@ export async function createPrediction(
      // Check if the pool token account exists and create it if needed
      const poolTokenAccountInfo = await connection.getAccountInfo(poolTokenAccount);
      if (!poolTokenAccountInfo) {
-         console.log("Creating pool token account");
+         //console.log("Creating pool token account");
          tx.add(
              createAssociatedTokenAccountInstruction(
                  wallet,
@@ -114,17 +106,22 @@ export async function createPrediction(
     
     tx.add(
         await program.methods
-            .predict(prediction, new BN(stake * LAMPORTS_PER_SOL))
+            .predict(
+                predictionIdBytes,
+                prediction, 
+                new BN(stake * LAMPORTS_PER_SOL), 
+            )
             .accounts({
                 pool: poolPDA,
                 predictor: wallet,
                 predictorTokenAccount: predictorTokenAccount,
                 poolTokenAccount: poolTokenAccount,
                 wsolMint: WSOL_MINT,
+                prediction: predictionPDA,
             })
             .instruction()
     );
 
-    console.log(`Transaction created! ${tx}`);
+    //console.log(`Transaction created! ${tx}`);
     return tx;
 }

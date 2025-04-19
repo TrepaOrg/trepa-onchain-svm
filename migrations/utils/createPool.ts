@@ -1,7 +1,7 @@
 import { BN, Program } from "@coral-xyz/anchor";
-import { PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Transaction } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
-
+import { getPoolPDAandIdArray } from "./getPDAs";
 /**
  * Creates a new pool with the given question and prediction end time.
  * @param program - The program instance.
@@ -15,24 +15,15 @@ export async function createPool(
     questionId: string, 
     predictionEndTime: number
 ): Promise<Transaction> {
-    const cleanedQuestionId = questionId.replace(/-/g, '');
-    const questionBytes = Buffer.from(cleanedQuestionId, 'hex');
-    const questionArray = Array.from(questionBytes);
-    if (questionArray.length !== 16) {
-        throw new Error(`Question must be 16 bytes, not ${questionArray.length} bytes for string ${questionBytes}`);
-    }
+    
     //console.log("Program ID:", program.programId.toBase58());
 
     // Get the PDA for the pool
-    const [poolPDA] = await PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), questionBytes],
-        program.programId
-    );
-
+    const { poolPDA, questionBytes } = await getPoolPDAandIdArray(program, questionId);
     //console.log("Pool PDA:", poolPDA.toBase58());
     // Create the pool
     const tx = await program.methods
-        .createPool(questionArray, new BN(predictionEndTime))
+        .createPool(questionBytes, new BN(predictionEndTime))
         .accounts({
             pool: poolPDA,
             admin: wallet,
