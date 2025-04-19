@@ -1,19 +1,36 @@
 import * as anchor from "@coral-xyz/anchor";
 import { assert } from "chai";
 import { Trepa } from "../target/types/trepa";
-import { PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { createPool } from "../migrations/utils/createPool";
 import { createPrediction } from "../migrations/utils/createPrediction";
+import { POOL_ID, PREDICTION_ID } from "../migrations/constants";
+import { BN } from "bn.js";
+import { getPredictionPDAandIdArray, getPoolPDAandIdArray } from "../migrations/utils/getPDAs";
 
-const POOL_ID = "00000000-0000-0000-0000-000000000000";
-const cleanedPoolId = POOL_ID.replace(/-/g, "");
-const questionBytes = Buffer.from(cleanedPoolId, "hex");
+let predictionWallet: anchor.web3.Keypair;
 
 describe("Trepa contract stable", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.trepa as anchor.Program<Trepa>;
 
+  // Create a new wallet and fund it with SOL
+  before(async () => {
+    predictionWallet = anchor.web3.Keypair.generate();
+    const airdropSignature = await provider.connection.requestAirdrop(
+      predictionWallet.publicKey,
+      3 * LAMPORTS_PER_SOL
+    );
+    const latestBlockhash = await provider.connection.getLatestBlockhash();
+    await provider.connection.confirmTransaction({
+      signature: airdropSignature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    });
+    console.log(predictionWallet.publicKey.toBase58());
+  });
+  
   it("initializes config account", async () => {
     // Derive the config PDA using the seed "config"
     const [configPDA] = PublicKey.findProgramAddressSync(
@@ -47,7 +64,6 @@ describe("Trepa contract stable", () => {
   });
 
   it("creates a new pool", async () => {
-    
     const tx = await createPool(
       program, 
       provider.wallet.publicKey, 
@@ -58,39 +74,48 @@ describe("Trepa contract stable", () => {
     const signature = await provider.sendAndConfirm(tx);
     // console.log("Pool creation transaction signature:", signature);
 
-    const [poolPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("pool"), questionBytes],
-      program.programId
-    );
+    const { poolPDA, questionBytes } = await getPoolPDAandIdArray(program, POOL_ID);
 
     const poolAccount = await program.account.poolAccount.fetch(poolPDA);
-    assert.ok(Buffer.from(poolAccount.question).equals(questionBytes), "Question is correct");
-    assert.ok(poolAccount.isFinalized === false, "Pool is finalized");
-    assert.ok(poolAccount.isResolved === false, "Pool is resolved");
-    assert.ok(poolAccount.totalStake.eq(new anchor.BN(0)), "Total stake is not 0");
-    assert.ok(poolAccount.predictionEndTime.eq(new anchor.BN(Math.floor(Date.now() / 1000) + 86400)), "Prediction end time is correct");
+    assert.ok(poolAccount.questionId.every((value, index) => value === questionBytes[index]), "Question is correct");
+    assert.ok(poolAccount.isFinalized === false, "Pool is not finalized");
+    assert.ok(poolAccount.isResolved === false, "Pool is not resolved");
+    assert.ok(poolAccount.totalStake.eq(new anchor.BN(0)), "Total stake is 0");
+    assert.ok(poolAccount.predictionEndTime >= new BN(Math.floor(Date.now() / 1000) + 86399), "Prediction end time is correct");
   });
 
+
   it("predicts in the pool", async () => {
+    const defaultPrediction = {
+      prediction: 10, // 10%
+      stake: 0.01, // 0.01 SOL
+      predictionId: PREDICTION_ID
+    }
 
     const tx = await createPrediction(
       program,
       provider.connection,
-      provider.wallet.publicKey, 
+      predictionWallet.publicKey, 
       POOL_ID,
-      10,
-      0.01 // 0.01 SOL
+      defaultPrediction.prediction,
+      defaultPrediction.stake,
+      defaultPrediction.predictionId
     );
 
-    const signature = await provider.sendAndConfirm(tx);
+    const signature = await provider.sendAndConfirm(tx, [predictionWallet]);
 
-    const [predictionPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("prediction"), questionBytes],
-      program.programId
-    );
+    const { predictionPDA, predictionIdBytes } = await getPredictionPDAandIdArray(program, defaultPrediction.predictionId);
     const predictionAccount = await program.account.predictionAccount.fetch(predictionPDA);
-    assert.ok(predictionAccount.prediction.eq(new anchor.BN(10)), "Prediction is correct");
-    assert.ok(predictionAccount.amount.eq(new anchor.BN(0.01)), "Amount is correct");
-    // console.log("Prediction transaction signature:", signature);
+  
+    const { poolPDA, questionBytes } = await getPoolPDAandIdArray(program, POOL_ID);
+
+    const poolAccount = await program.account.poolAccount.fetch(poolPDA);
+
+    assert.ok(predictionAccount.predictionValue === defaultPrediction.prediction, "Prediction value is correct");
+    assert.ok(predictionAccount.predictionId.every((value, index) => value === predictionIdBytes[index]), "Prediction id is correct");
+    assert.ok(predictionAccount.predictor.equals(predictionWallet.publicKey), "Predictor is correct");
+    assert.ok(predictionAccount.pool.equals(poolPDA), "Pool is correct");
+    assert.ok(poolAccount.totalStake.eq(new anchor.BN(defaultPrediction.stake * LAMPORTS_PER_SOL)), "Total stake is correct")
+    assert.ok(predictionAccount.isClaimed === false, "Prediction is not claimed");
   });
 });
