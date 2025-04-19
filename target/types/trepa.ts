@@ -537,7 +537,7 @@ export type Trepa = {
         "kind": "struct",
         "fields": [
           {
-            "name": "question",
+            "name": "questionId",
             "type": {
               "array": [
                 "u8",

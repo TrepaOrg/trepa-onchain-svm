@@ -531,7 +531,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "question",
+            "name": "question_id",
             "type": {
               "array": [
                 "u8",

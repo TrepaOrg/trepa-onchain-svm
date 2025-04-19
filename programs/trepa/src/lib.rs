@@ -69,7 +69,7 @@ pub mod trepa {
     ) -> Result<()> {
 
         let pool = &mut ctx.accounts.pool;
-        pool.question = question;
+        pool.question_id = question;
         pool.prediction_end_time = prediction_end_time;
         pool.total_stake = 0;
         pool.is_finalized = false;
@@ -115,7 +115,7 @@ pub mod trepa {
         // Since pool is a PDA, create its signer seeds for CPI.
         let pool_seeds: &[&[u8]] = &[
             &b"pool"[..],
-            &pool.question[..],
+            &pool.question_id[..],
             &[pool.bump],
         ];
         let signer_seeds = &[&pool_seeds[..]];
@@ -208,7 +208,7 @@ pub mod trepa {
         // Transfer WSOL from the pool's token account to the predictor's token account.
         let pool_seeds: &[&[u8]] = &[
             b"pool",
-            &ctx.accounts.pool.question,
+            &ctx.accounts.pool.question_id[..],
             &[ctx.accounts.pool.bump],
         ];
         let signer_seeds = &[pool_seeds];

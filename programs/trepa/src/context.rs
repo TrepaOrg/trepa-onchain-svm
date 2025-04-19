@@ -16,7 +16,7 @@ pub struct ConfigAccount {
 
 #[account]
 pub struct PoolAccount {
-    pub question: [u8; 16],         // The prediction question (identifier) always 16 bytes
+    pub question_id: [u8; 16],         // The prediction question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends
     pub total_stake: u64,           // Total tokens staked
     pub is_resolved: bool,          // Whether the pool is resolved
