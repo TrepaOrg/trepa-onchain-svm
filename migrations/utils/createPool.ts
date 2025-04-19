@@ -21,7 +21,7 @@ export async function createPool(
     if (questionArray.length !== 16) {
         throw new Error(`Question must be 16 bytes, not ${questionArray.length} bytes for string ${questionBytes}`);
     }
-    console.log("Program ID:", program.programId.toBase58());
+    //console.log("Program ID:", program.programId.toBase58());
 
     // Get the PDA for the pool
     const [poolPDA] = await PublicKey.findProgramAddressSync(
@@ -29,7 +29,7 @@ export async function createPool(
         program.programId
     );
 
-    console.log("Pool PDA:", poolPDA.toBase58());
+    //console.log("Pool PDA:", poolPDA.toBase58());
     // Create the pool
     const tx = await program.methods
         .createPool(questionArray, new BN(predictionEndTime))
@@ -39,6 +39,6 @@ export async function createPool(
         })
         .transaction();
 
-    console.log(`Transaction created! ${tx}`);
+    //console.log(`Transaction created! ${tx}`);
     return tx;
 }
