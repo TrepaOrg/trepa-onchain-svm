@@ -36,9 +36,7 @@ async function main() {
     )
     .accounts({
       admin: provider.wallet.publicKey,
-      config: configPDA,
       treasury: provider.wallet.publicKey,
-      systemProgram: SystemProgram.programId,
     })
     .rpc();
 
