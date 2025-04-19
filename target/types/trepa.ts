@@ -244,14 +244,6 @@ export type Trepa = {
       ],
       "args": [
         {
-          "name": "pred",
-          "type": "u8"
-        },
-        {
-          "name": "stake",
-          "type": "u64"
-        },
-        {
           "name": "predictionId",
           "type": {
             "array": [
@@ -259,6 +251,14 @@ export type Trepa = {
               16
             ]
           }
+        },
+        {
+          "name": "pred",
+          "type": "u8"
+        },
+        {
+          "name": "stake",
+          "type": "u64"
         }
       ]
     },

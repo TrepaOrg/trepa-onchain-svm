@@ -140,9 +140,9 @@ pub mod trepa {
     /// Predicts the outcome of a pool
     pub fn predict(
         ctx: Context<Predict>,
+        prediction_id: [u8; 16],
         pred: u8,
         stake: u64,  // the intended stake amount
-        prediction_id: [u8; 16],
     ) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
         pool.total_stake += stake;

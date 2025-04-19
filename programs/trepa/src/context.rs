@@ -16,7 +16,7 @@ pub struct ConfigAccount {
 
 #[account]
 pub struct PoolAccount {
-    pub question_id: [u8; 16],         // The prediction question (identifier) always 16 bytes
+    pub question_id: [u8; 16],         // The question (identifier) always 16 bytes
     pub prediction_end_time: i64,   // When prediction period ends
     pub total_stake: u64,           // Total tokens staked
     pub is_resolved: bool,          // Whether the pool is resolved
@@ -27,7 +27,7 @@ pub struct PoolAccount {
 
 #[account]
 pub struct PredictionAccount {
-    pub prediction_id: [u8; 16],
+    pub prediction_id: [u8; 16],    // The prediction identifier always 16 bytes
     pub predictor: Pubkey,          // Predictor's public key
     pub pool: Pubkey,               // Associated spark/pool
     // remove later
@@ -87,7 +87,7 @@ pub struct CreatePool<'info> {
         space = 8 + std::mem::size_of::<PoolAccount>() + 20,  // 8 for the discriminator; fixed size for PoolAccount; 20 bytes for the string (4 for length + 16 max)
         seeds = [b"pool", &question_id[..]],
         bump,
-        constraint = prediction_end_time > clock.unix_timestamp @  ContextError::InvalidEndTime
+        constraint = prediction_end_time > clock.unix_timestamp @ ContextError::InvalidEndTime
     )]
     pub pool: Account<'info, PoolAccount>,
     

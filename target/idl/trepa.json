@@ -238,14 +238,6 @@
       ],
       "args": [
         {
-          "name": "pred",
-          "type": "u8"
-        },
-        {
-          "name": "stake",
-          "type": "u64"
-        },
-        {
           "name": "prediction_id",
           "type": {
             "array": [
@@ -253,6 +245,14 @@
               16
             ]
           }
+        },
+        {
+          "name": "pred",
+          "type": "u8"
+        },
+        {
+          "name": "stake",
+          "type": "u64"
         }
       ]
     },
