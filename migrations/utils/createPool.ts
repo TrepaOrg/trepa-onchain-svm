@@ -1,4 +1,4 @@
-import { BN, Program } from "@project-serum/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import { PublicKey, SystemProgram, SYSVAR_CLOCK_PUBKEY, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
 
@@ -36,8 +36,6 @@ export async function createPool(
         .accounts({
             pool: poolPDA,
             admin: wallet,
-            systemProgram: SystemProgram.programId,
-            clock: SYSVAR_CLOCK_PUBKEY,
         })
         .transaction();
 

@@ -1,5 +1,5 @@
-import { Connection, PublicKey, AccountInfo } from "@solana/web3.js";
-import { Program } from "@project-serum/anchor";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { Program } from "@coral-xyz/anchor";
 import { Trepa } from "../../target/types/trepa";
 
 /**

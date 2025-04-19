@@ -1,7 +1,7 @@
-import { BN, Program } from "@project-serum/anchor";
-import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { BN, Program } from "@coral-xyz/anchor";
+import { LAMPORTS_PER_SOL, PublicKey, Transaction } from "@solana/web3.js";
 import { Trepa } from "../../target/types/trepa";
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 
 // WSOL mint address (same on all networks)
 const WSOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");

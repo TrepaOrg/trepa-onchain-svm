@@ -1,4 +1,4 @@
-import { BN, Program } from "@project-serum/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import { 
     Connection,
     LAMPORTS_PER_SOL, 
@@ -116,13 +116,10 @@ export async function createPrediction(
         await program.methods
             .predict(prediction, new BN(stake * LAMPORTS_PER_SOL))
             .accounts({
-                prediction: predictionPDA,
                 pool: poolPDA,
                 predictor: wallet,
                 predictorTokenAccount: predictorTokenAccount,
                 poolTokenAccount: poolTokenAccount,
-                systemProgram: SystemProgram.programId,
-                tokenProgram: TOKEN_PROGRAM_ID,
                 wsolMint: WSOL_MINT,
             })
             .instruction()
